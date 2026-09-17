@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Léger : 2 sessions/jour de 1 min",
+    "reachedAllStages": true,
+    "cappedAtMs": null,
+    "stageTimesMs": {
+      "0": 0,
+      "1": 11000,
+      "2": 43200000,
+      "3": 43200000,
+      "4": 86400000,
+      "5": 129600000,
+      "6": 259200000
+    },
+    "finalTotalGrowth": 2171658.999999997,
+    "totalTaps": 360,
+    "totalOfflineGain": 2161152
+  },
+  {
+    "name": "Modéré : 3 sessions/jour de 3 min",
+    "reachedAllStages": true,
+    "cappedAtMs": null,
+    "stageTimesMs": {
+      "0": 0,
+      "1": 11000,
+      "2": 75000,
+      "3": 28800000,
+      "4": 57600000,
+      "5": 86400000,
+      "6": 144000000
+    },
+    "finalTotalGrowth": 2102388.6999999923,
+    "totalTaps": 900,
+    "totalOfflineGain": 2075497
+  },
+  {
+    "name": "Assidu : 5 sessions/jour de 5 min",
+    "reachedAllStages": true,
+    "cappedAtMs": null,
+    "stageTimesMs": {
+      "0": 0,
+      "1": 6000,
+      "2": 42000,
+      "3": 143000,
+      "4": 17280000,
+      "5": 34852000,
+      "6": 103680000
+    },
+    "finalTotalGrowth": 1620032.9499999802,
+    "totalTaps": 3600,
+    "totalOfflineGain": 1547204
+  },
+  {
+    "name": "Onglet laissé ouvert en continu, jamais d'achat (contrôle)",
+    "reachedAllStages": false,
+    "cappedAtMs": 864000000,
+    "stageTimesMs": {
+      "0": 0,
+      "1": 80000,
+      "2": 1000000,
+      "3": 8001000,
+      "4": 100001000
+    },
+    "finalTotalGrowth": 129599.99999796278,
+    "totalTaps": 0,
+    "totalOfflineGain": 0
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "name": "HAVEN",
+  "short_name": "HAVEN",
+  "description": "Un petit monde qui se transforme.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1b1a",
+  "theme_color": "#0f1b1a",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-180.svg", "sizes": "180x180", "type": "image/svg+xml" }
+  ]
+}

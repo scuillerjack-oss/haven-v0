@@ -6,6 +6,37 @@ export function formatNumber(value) {
   return `${(n / 1_000_000).toFixed(2)}M`;
 }
 
+// Pour les durées de phase courtes (secondes, avec une décimale) — jamais
+// pour les durées longues (hors-ligne, calendaires), où formatDuration
+// reste la bonne unité.
+export function formatSeconds(ms) {
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+// Affiche une grandeur concrète d'effet d'amélioration ("1 L", "1.8s",
+// "+15%") sans bruit décimal inutile sur les valeurs entières.
+function formatPlainNumber(n) {
+  const rounded = Math.round(n * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+// "20 L" (avec espace) pour les litres, "1.8s"/"+15%" (sans espace) pour
+// les durées et pourcentages — convention française usuelle des exemples
+// du cahier des charges V2.
+const EFFECT_UNIT = { liters: " L", seconds: "s", percent: "%" };
+
+// Construit la ligne "valeur actuelle -> valeur suivante" à partir de
+// upgradeEffect() (mapUpgrades.js) : jamais un pourcentage abstrait seul
+// quand une grandeur concrète est disponible.
+export function formatUpgradeEffect(effect) {
+  if (!effect) return "";
+  const unit = EFFECT_UNIT[effect.kind];
+  const sign = effect.kind === "percent" ? "+" : "";
+  const currentText = `${sign}${formatPlainNumber(effect.current)}${unit}`;
+  const nextText = `${sign}${formatPlainNumber(effect.next)}${unit}`;
+  return `${currentText} → ${nextText}${effect.suffix ? ` ${effect.suffix}` : ""}`;
+}
+
 export function formatDuration(ms) {
   const totalMinutes = Math.round(ms / 60000);
   if (totalMinutes < 1) return "moins d'une minute";

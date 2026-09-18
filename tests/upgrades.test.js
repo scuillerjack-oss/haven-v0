@@ -2,7 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createInitialState, createMapState } from "../src/engine/state.js";
 import { WATER_MAP } from "../src/engine/mapDefinitions.js";
-import { purchaseMapUpgrade, nextUpgradeInfo } from "../src/engine/mapUpgrades.js";
+import { purchaseMapUpgrade, nextUpgradeInfo, upgradeEffect, UPGRADE_PATH_IDS } from "../src/engine/mapUpgrades.js";
+import {
+  producerBucketLiters,
+  bufferCapacity,
+  transportCapacity,
+  transportIntervalMs,
+  producerPhaseDurations,
+} from "../src/engine/mapEconomy.js";
 
 test("un achat refuse si l'argent manque, accepte sinon, débite le coût exact", () => {
   const game = createInitialState(0);
@@ -56,5 +63,43 @@ test("chaque famille d'amélioration a un effet distinct sur le cycle ou la capa
     const before = JSON.stringify(map);
     purchaseMapUpgrade(game, map, WATER_MAP, family);
     assert.notEqual(JSON.stringify(map), before, `${family} devrait changer l'état`);
+  }
+});
+
+// Section 3 du cahier des charges V2 : jamais un pourcentage abstrait seul
+// quand une grandeur concrète est disponible — et cette grandeur doit être
+// la VRAIE valeur du moteur, pas une approximation recalculée côté UI.
+test("la grandeur affichée par upgradeEffect() correspond exactement à ce que le moteur applique réellement", () => {
+  for (const pathId of UPGRADE_PATH_IDS) {
+    const map = createMapState();
+    const info = nextUpgradeInfo(map, WATER_MAP, pathId);
+    const effect = upgradeEffect(WATER_MAP, pathId, info.current, info.next);
+    assert.ok(effect, `${pathId} devrait produire un affichage d'effet`);
+
+    // On achète réellement le niveau suivant et on relit la grandeur au
+    // moteur, plutôt que de faire confiance à une formule dupliquée.
+    const game = createInitialState(0);
+    game.money = 999_999;
+    purchaseMapUpgrade(game, map, WATER_MAP, pathId);
+
+    if (pathId === "bucket") {
+      assert.equal(effect.current, 1); // seau niveau 1 : 1 L/trajet (baseValue)
+      assert.equal(effect.next, producerBucketLiters(map, WATER_MAP));
+    } else if (pathId === "buffer") {
+      assert.equal(effect.next, bufferCapacity(map, WATER_MAP));
+    } else if (pathId === "transportCapacity") {
+      assert.equal(effect.next, transportCapacity(map, WATER_MAP));
+    } else if (pathId === "transportFrequency") {
+      assert.equal(effect.next * 1000, transportIntervalMs(map, WATER_MAP));
+    } else if (pathId === "movement" || pathId === "winch" || pathId === "well") {
+      const phaseKey = { movement: "walkToWell", winch: "lowerBucket", well: "wellFill" }[pathId];
+      const durations = producerPhaseDurations(map, WATER_MAP);
+      const real = durations.find((p) => p.key === phaseKey).durationMs;
+      assert.ok(Math.abs(effect.next * 1000 - real) < 1e-6);
+    } else if (pathId === "globalProductivity") {
+      const realMultiplier = 1 + effect.next / 100;
+      assert.equal(map.globalProductivityLevel, info.next.level);
+      assert.ok(Math.abs(realMultiplier - info.next.multiplier) < 1e-9);
+    }
   }
 });

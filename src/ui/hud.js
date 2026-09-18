@@ -1,6 +1,6 @@
 import { sceneMarkup } from "./scene.js";
-import { formatNumber } from "./format.js";
-import { UPGRADE_PATH_IDS, nextUpgradeInfo } from "../engine/mapUpgrades.js";
+import { formatNumber, formatUpgradeEffect } from "./format.js";
+import { UPGRADE_PATH_IDS, nextUpgradeInfo, upgradeEffect } from "../engine/mapUpgrades.js";
 import {
   PERKS,
   nextPerkInfo,
@@ -94,9 +94,12 @@ function upgradeCardMarkup(gameState, mapState, mapDef, pathId) {
   }
   const cost = info.next.cost * costMultiplier;
   const canAfford = gameState.money >= cost;
+  const effect = upgradeEffect(mapDef, pathId, info.current, info.next);
   return `
     <article class="card" data-path="${pathId}">
       <h3>${info.familyDef.name}</h3>
+      <p class="card-levels">Niveau ${info.currentLevel} → ${info.next.level}</p>
+      <p class="card-effect">${formatUpgradeEffect(effect)}</p>
       <button class="buy-btn" data-buy-path="${pathId}" ${canAfford ? "" : "disabled"}>
         ${info.next.label} — ${formatNumber(cost)}
       </button>

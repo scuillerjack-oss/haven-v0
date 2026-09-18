@@ -34,8 +34,60 @@ export function nextUpgradeInfo(mapState, mapDef, pathId) {
   if (!path) return null;
   const familyDef = path.defPath(mapDef);
   const currentLevel = path.getState(mapState)[path.field];
+  const current = familyDef.levels.find((l) => l.level === currentLevel);
   const next = familyDef.levels.find((l) => l.level === currentLevel + 1);
-  return { familyDef, currentLevel, next };
+  return { familyDef, currentLevel, current, next };
+}
+
+// L'interface ne doit jamais se contenter d'indications abstraites
+// ("Vitesse +2%") : chaque carte affiche la grandeur concrète, valeur
+// actuelle -> valeur suivante, directement dérivée des vraies valeurs du
+// moteur (jamais recalculée à la main côté UI). Une phase "de référence"
+// représente chaque famille de vitesse (déplacement/treuil/puits) puisque
+// leur multiplicateur s'applique à plusieurs phases à la fois.
+const PRODUCER_REFERENCE_PHASE = {
+  movement: "walkToWell",
+  winch: "lowerBucket",
+  well: "wellFill",
+};
+
+export function upgradeEffect(mapDef, pathId, currentLevelObj, nextLevelObj) {
+  switch (pathId) {
+    case "bucket":
+      return { kind: "liters", current: currentLevelObj.liters, next: nextLevelObj.liters, suffix: "par trajet" };
+    case "buffer":
+      return { kind: "liters", current: currentLevelObj.capacity, next: nextLevelObj.capacity, suffix: "de stockage" };
+    case "transportCapacity":
+      return { kind: "liters", current: currentLevelObj.capacity, next: nextLevelObj.capacity, suffix: "par passage" };
+    case "transportFrequency":
+      return {
+        kind: "seconds",
+        current: currentLevelObj.intervalMs / 1000,
+        next: nextLevelObj.intervalMs / 1000,
+        suffix: "entre deux passages",
+      };
+    case "movement":
+    case "winch":
+    case "well": {
+      const phaseKey = PRODUCER_REFERENCE_PHASE[pathId];
+      const baseMs = mapDef.phases[phaseKey];
+      return {
+        kind: "seconds",
+        current: (baseMs * currentLevelObj.multiplier) / 1000,
+        next: (baseMs * nextLevelObj.multiplier) / 1000,
+        suffix: "",
+      };
+    }
+    case "globalProductivity":
+      return {
+        kind: "percent",
+        current: (currentLevelObj.multiplier - 1) * 100,
+        next: (nextLevelObj.multiplier - 1) * 100,
+        suffix: "de productivité",
+      };
+    default:
+      return null;
+  }
 }
 
 export function purchaseMapUpgrade(gameState, mapState, mapDef, pathId) {

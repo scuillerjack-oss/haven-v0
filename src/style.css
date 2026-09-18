@@ -341,6 +341,11 @@ body {
 
 /* Onboarding ------------------------------------------------------------ */
 
+/* V3 (section 5 du cahier des charges post-bêta) : feedback temporaire,
+   jamais affiché en continu — apparition après achat, disparition douce
+   après 2,5-3,5s (voir onboarding.js). `hidden` n'est plus utilisé pour
+   cet élément (display:none ne peut pas se transitionner en douceur) :
+   l'opacité seule pilote la visibilité, toujours présent dans le DOM. */
 .onboarding {
   position: absolute;
   left: 14px;
@@ -352,6 +357,14 @@ body {
   padding: 10px 14px;
   font-size: 0.9rem;
   z-index: 4;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.onboarding.is-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* Drawer ------------------------------------------------------------ */

@@ -51,7 +51,7 @@ export function shellMarkup() {
         <button class="prestige-btn" id="prestige-open-btn" hidden>Renaissance disponible</button>
       </section>
 
-      <div class="onboarding" id="onboarding" hidden></div>
+      <div class="onboarding" id="onboarding"></div>
 
       <div class="modal-backdrop" id="help-modal" hidden>
         <div class="modal" role="dialog" aria-modal="true">

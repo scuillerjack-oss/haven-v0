@@ -113,7 +113,12 @@ for (const [k, v] of Object.entries(maxedAt)) {
   console.log(`  ${k}: ${formatDuration(v)}`);
 }
 
-const output = { speedFamiliesMaxedReport, macroSequence, maxedAt };
+// Le régime permanent une fois la citerne/le stockage sollicités oscille
+// très vite entre "transport" et "storageFull" (un camion qui passe puis
+// repart) : on ne garde que les 30 premiers changements pour l'artefact
+// écrit sur disque, largement suffisant pour vérifier l'alternance sans
+// gonfler ce fichier de milliers d'entrées redondantes.
+const output = { speedFamiliesMaxedReport, macroSequence: macroSequence.slice(0, 30), macroSequenceTotalCount: macroSequence.length, maxedAt };
 const outPath = join(__dirname, "..", "docs", "haven-v3-bottleneck-simulation-results.json");
 writeFileSync(outPath, JSON.stringify(output, null, 2));
 console.log(`\nRésultats écrits dans ${outPath}`);

@@ -13,6 +13,7 @@ import {
   applyMapOfflineProgress,
   currentProducerPhase,
   stageTotalMs,
+  stageDurations,
 } from "../src/engine/mapEconomy.js";
 
 test("le cycle de base correspond bien à la somme des phases (aucune amélioration achetée)", () => {
@@ -164,6 +165,28 @@ test("currentProducerPhase reflète la pause quand le stockage est plein", () =>
   tickMap(map, WATER_MAP, producerCycleMs(map, WATER_MAP) * 2);
   const phase = currentProducerPhase(map, WATER_MAP);
   assert.equal(phase.paused, true);
+});
+
+// V3 (section 4 du cahier des charges post-bêta) : extraMs permet à l'UI
+// d'extrapoler visuellement entre deux ticks économiques (voir main.js,
+// requestAnimationFrame) sans jamais dépasser dans l'étape suivante avant
+// que le vrai tick ne l'ait confirmé — sinon l'animation mentirait sur
+// l'état réel du moteur.
+test("currentProducerPhase avec extraMs avance la progression sans jamais dépasser la fin de l'étape en cours", () => {
+  const map = createMapState();
+  const outboundMs = stageTotalMs(map, WATER_MAP, undefined, "outbound");
+
+  const halfway = currentProducerPhase(map, WATER_MAP, undefined, outboundMs / 2);
+  const withoutExtra = currentProducerPhase(map, WATER_MAP);
+  assert.notDeepEqual(halfway, withoutExtra, "extraMs devrait faire progresser la phase affichée");
+
+  // Un extraMs énorme (bien au-delà de la durée de l'étape) ne doit
+  // jamais faire "sauter" dans l'étape suivante : la dernière phase reste
+  // affichée à progress=1, en attendant le tick réel.
+  const wayTooMuch = currentProducerPhase(map, WATER_MAP, undefined, outboundMs * 10);
+  const durations = stageDurations(map, WATER_MAP, undefined, "outbound");
+  assert.equal(wayTooMuch.key, durations[durations.length - 1].key);
+  assert.equal(wayTooMuch.progress, 1);
 });
 
 test("une absence négative ou nulle ne rapporte jamais rien", () => {

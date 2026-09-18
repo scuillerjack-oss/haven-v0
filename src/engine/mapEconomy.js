@@ -225,14 +225,30 @@ export function applyMapOfflineProgress(mapState, mapDef, elapsedMs, modifiers =
 // Phase du cycle en cours, pour l'animation du travailleur (jamais de
 // téléportation brutale entre postes : l'UI lit cette phase à chaque
 // image et positionne le personnage en conséquence).
-export function currentProducerPhase(mapState, mapDef, modifiers = NEUTRAL_MODIFIERS) {
+//
+// `extraMs` (V3, section 4 du cahier des charges post-bêta) : permet à
+// l'UI d'extrapoler visuellement le temps écoulé depuis le dernier tick
+// économique (ex. via requestAnimationFrame), SANS toucher à l'état réel
+// du moteur. Cause exacte du petit saut observé sur Android une fois
+// certains axes de vitesse au maximum : la boucle de rendu ne tournait
+// qu'au rythme du tick économique (200ms, voir TICK_MS), alors qu'une
+// phase au plancher visuel peut ne durer que 250-260ms — à peine plus
+// d'une seule image de rendu, donc un déplacement qui saute au lieu de
+// glisser. Jamais résolu en accélérant le tick économique (couteux en
+// batterie pour un gain qui ne concerne que l'affichage) : `extraMs`
+// laisse le rendu s'exécuter à la cadence de l'écran (souvent 60-120Hz)
+// tout en gardant le calcul économique à sa cadence propre. Toujours
+// borné à la durée totale de l'étape en cours : ne dépasse jamais dans
+// la phase suivante avant que le tick réel ne l'ait confirmé.
+export function currentProducerPhase(mapState, mapDef, modifiers = NEUTRAL_MODIFIERS, extraMs = 0) {
   const producer = mapState.producer;
   if (producer.awaitingRoom) {
     return { key: "waitingForRoom", progress: 1, paused: true };
   }
   const durations = stageDurations(mapState, mapDef, modifiers, producer.stage);
+  const totalMs = durations.reduce((sum, p) => sum + p.durationMs, 0);
   let acc = 0;
-  const progressMs = producer.stageProgressMs;
+  const progressMs = Math.min(producer.stageProgressMs + Math.max(0, extraMs), totalMs);
   for (const phase of durations) {
     if (progressMs < acc + phase.durationMs) {
       return { key: phase.key, progress: (progressMs - acc) / phase.durationMs, paused: false };

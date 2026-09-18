@@ -141,6 +141,7 @@ let lastTickTime = Date.now();
 let lastSaveTime = Date.now();
 let lastTickResult = null;
 let wasPausedBefore = false;
+let animationFrameId = null;
 
 // --- Boot ---
 
@@ -154,6 +155,7 @@ renderMoney();
 renderDrawer();
 renderPrestigeButton();
 renderScene();
+startAnimationLoop();
 
 // --- Boucle principale ---
 
@@ -197,27 +199,21 @@ function renderMoney() {
   els.moneyValue.textContent = moneyLabel(state);
 }
 
+// Piloté par le tick économique (200ms) : tout ce qui est événementiel ou
+// discret (texte de goulot, floater d'argent, déclenchement de tutoriel).
+// Ne positionne plus le travailleur lui-même — voir renderAnimationFrame.
 function renderScene() {
   const mapDef = getMapDefinition(state.currentMapId);
   const mapState = state.maps[state.currentMapId];
   const modifiers = getModifiers(state);
   const phase = currentProducerPhase(mapState, mapDef, modifiers);
-  const capacity = bufferCapacity(mapState, mapDef, modifiers);
-  const bufferRatio = capacity > 0 ? mapState.buffer.currentLiters / capacity : 0;
-  const intervalMs = transportIntervalMs(mapState, mapDef, modifiers);
-  const truckRatio = intervalMs > 0 ? mapState.transport.timerMs / intervalMs : 0;
   const shipped = lastTickResult?.perMap?.[state.currentMapId]?.litersShipped ?? 0;
   const moneyFromShip = lastTickResult?.perMap?.[state.currentMapId]?.moneyEarned ?? 0;
 
-  updateSceneAnimation(els.sceneRoot, {
-    phase,
-    bufferRatio,
-    truckRatio,
-    isShipping: shipped > 0,
-    walking: !phase.paused && (phase.key === "walkToWell" || phase.key === "walkToStorage" || phase.key === "walkBack"),
-  });
-
-  if (shipped > 0) spawnFloater(`+${formatNumber(moneyFromShip)}`);
+  if (shipped > 0) {
+    updateSceneAnimation(els.sceneRoot, { phase, isShipping: true });
+    spawnFloater(`+${formatNumber(moneyFromShip)}`);
+  }
 
   const kind = bottleneckKind(mapState, mapDef, modifiers);
   els.bottleneckTitle.textContent = BOTTLENECK_TEXT[kind].title;
@@ -228,6 +224,42 @@ function renderScene() {
     recordSaturationEdge(state, { mapId: state.currentMapId });
   }
   wasPausedBefore = phase.paused;
+}
+
+// Piloté par requestAnimationFrame (V3, section 4 du cahier des charges
+// post-bêta) : position du travailleur, marche, remplissage du tampon,
+// avancée du camion — tout ce qui doit rester visuellement fluide même
+// quand une phase ne dure que 250-260ms (plancher de vitesse), bien en
+// dessous du tick économique (200ms). Voir le commentaire de
+// currentProducerPhase() dans mapEconomy.js pour le diagnostic complet.
+function renderAnimationFrame() {
+  const mapDef = getMapDefinition(state.currentMapId);
+  const mapState = state.maps[state.currentMapId];
+  const modifiers = getModifiers(state);
+  const extraMs = Date.now() - lastTickTime;
+  const phase = currentProducerPhase(mapState, mapDef, modifiers, extraMs);
+  const capacity = bufferCapacity(mapState, mapDef, modifiers);
+  const bufferRatio = capacity > 0 ? mapState.buffer.currentLiters / capacity : 0;
+  const intervalMs = transportIntervalMs(mapState, mapDef, modifiers);
+  const truckRatio = intervalMs > 0 ? mapState.transport.timerMs / intervalMs : 0;
+
+  updateSceneAnimation(els.sceneRoot, {
+    phase,
+    bufferRatio,
+    truckRatio,
+    walking: !phase.paused && (phase.key === "walkToWell" || phase.key === "walkToStorage" || phase.key === "walkBack"),
+  });
+
+  animationFrameId = requestAnimationFrame(renderAnimationFrame);
+}
+function startAnimationLoop() {
+  if (animationFrameId !== null) return;
+  animationFrameId = requestAnimationFrame(renderAnimationFrame);
+}
+function stopAnimationLoop() {
+  if (animationFrameId === null) return;
+  cancelAnimationFrame(animationFrameId);
+  animationFrameId = null;
 }
 
 function spawnFloater(text) {
@@ -380,6 +412,7 @@ function handleSuspend() {
   } catch (err) {
     console.error("HAVEN: erreur pendant la mise en veille", err);
   } finally {
+    stopAnimationLoop();
     state.lastSeen = Date.now();
   }
 }
@@ -397,6 +430,7 @@ function handleResume() {
     console.error("HAVEN: erreur pendant la reprise, l'état reste jouable", err);
   } finally {
     restartLoop();
+    startAnimationLoop();
     if (audioStarted) audio.resume();
     lastTickTime = now;
     state.lastSeen = now;

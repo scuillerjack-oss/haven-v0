@@ -143,5 +143,9 @@ export function updateSceneAnimation(root, { phase, bufferRatio, truckRatio, isS
   const truckX = truckRatio >= 0.7 ? lerp(TRUCK_HIDDEN_X, TRUCK_DOCK_X, Math.min(1, (truckRatio - 0.7) / 0.3)) : TRUCK_HIDDEN_X;
   truck.setAttribute("transform", `translate(${truckX}, 380)`);
   truck.classList.toggle("is-docked", truckRatio >= 0.98);
-  truck.classList.toggle("is-shipping", Boolean(isShipping));
+  // `isShipping` reste `undefined` lors des images de rendu interpolées
+  // (requestAnimationFrame, entre deux ticks économiques) : la classe ne
+  // doit alors jamais être touchée, sous peine de couper le flash
+  // "truck-flash" (animation CSS ponctuelle) avant qu'il ait pu jouer.
+  if (typeof isShipping === "boolean") truck.classList.toggle("is-shipping", isShipping);
 }

@@ -176,11 +176,11 @@ export const WATER_MAP = {
   bufferUpgrades: {
     name: "Stockage",
     levels: growingValueLevels({
-      count: 12,
+      count: 8,
       baseCost: 6,
-      costGrowth: 2.4,
-      baseValue: 20,
-      valueGrowth: 1.25,
+      costGrowth: 2.1,
+      baseValue: 10,
+      valueGrowth: 1.3,
       valueKey: "capacity",
       labels: ["Bassin", "Citerne enterrée", "Réservoir", "Château d'eau"],
     }),
@@ -188,11 +188,11 @@ export const WATER_MAP = {
   transportCapacityUpgrades: {
     name: "Citerne",
     levels: growingValueLevels({
-      count: 12,
+      count: 8,
       baseCost: 8,
-      costGrowth: 2.45,
-      baseValue: 20,
-      valueGrowth: 1.25,
+      costGrowth: 2.9,
+      baseValue: 4,
+      valueGrowth: 1.2,
       valueKey: "capacity",
       labels: ["Petite citerne", "Citerne moyenne", "Grande citerne", "Semi-remorque"],
     }),

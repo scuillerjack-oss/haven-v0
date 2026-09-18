@@ -63,14 +63,18 @@ test("goulot d'étranglement : un stockage plein bloque le travailleur exactemen
 
 test("le transport ne charge jamais plus que ce qu'il y a dans le stockage", () => {
   const map = createMapState();
-  map.buffer.currentLiters = 5; // moins que la capacité de la citerne (50)
+  // Une petite fraction de la capacité de la citerne (dynamique : jamais
+  // supposée, la calibration économique évolue d'une version à l'autre).
+  const citerneCapacity = transportCapacity(map, WATER_MAP);
+  const startLiters = citerneCapacity * 0.1;
+  map.buffer.currentLiters = startLiters;
   const interval = transportIntervalMs(map, WATER_MAP);
   const cycleMs = producerCycleMs(map, WATER_MAP);
   const bucket = producerBucketLiters(map, WATER_MAP);
   // Le producteur tourne aussi pendant cet intervalle : le stockage
   // disponible au moment du passage du transport inclut sa contribution.
-  const expectedAvailable = 5 + Math.floor(interval / cycleMs) * bucket;
-  assert.ok(expectedAvailable < 50, "précondition du test : rester sous la capacité de la citerne");
+  const expectedAvailable = startLiters + Math.floor(interval / cycleMs) * bucket;
+  assert.ok(expectedAvailable < citerneCapacity, "précondition du test : rester sous la capacité de la citerne");
 
   const { litersShipped, moneyEarned } = tickMap(map, WATER_MAP, interval);
   assert.equal(litersShipped, expectedAvailable);

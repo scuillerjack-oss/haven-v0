@@ -6,36 +6,36 @@
         "atMs": 60000,
         "money": 4.5,
         "totalPurchases": 2,
-        "progressRatio": 0.000009583333333333334
+        "progressRatio": 0.00004791666666666667
       },
       {
         "atMs": 180000,
         "money": 1.7,
         "totalPurchases": 8,
-        "progressRatio": 0.00003975
+        "progressRatio": 0.00019874999999999998
       },
       {
         "atMs": 600000,
         "money": 6.14,
         "totalPurchases": 20,
-        "progressRatio": 0.00020095000000000014
+        "progressRatio": 0.0010047500000000007
       },
       {
         "atMs": 1800000,
         "money": 112.03,
         "totalPurchases": 40,
-        "progressRatio": 0.0013425333333333333
+        "progressRatio": 0.006712666666666666
       },
       {
         "atMs": 3600000,
         "money": 1381.28,
         "totalPurchases": 52,
-        "progressRatio": 0.005804183333333294
+        "progressRatio": 0.029020916666666473
       }
     ]
   },
   "activeCompletion": {
-    "mapCompleteActiveMs": null,
+    "mapCompleteActiveMs": 52584000,
     "totalPurchases": 59
   },
   "profileResults": [
@@ -44,8 +44,8 @@
       "firstPurchaseAt": 24000,
       "purchasesInFirst3Min": 2,
       "totalPurchases": 59,
-      "mapCompleteAt": 432000000,
-      "activeMsAtMapComplete": 600000,
+      "mapCompleteAt": 259200000,
+      "activeMsAtMapComplete": 360000,
       "prestigeAvailableAt": 86400000
     },
     {
@@ -53,8 +53,8 @@
       "firstPurchaseAt": 24000,
       "purchasesInFirst3Min": 8,
       "totalPurchases": 59,
-      "mapCompleteAt": 288000000,
-      "activeMsAtMapComplete": 1800000,
+      "mapCompleteAt": 172800000,
+      "activeMsAtMapComplete": 1080000,
       "prestigeAvailableAt": 57600000
     },
     {
@@ -62,8 +62,8 @@
       "firstPurchaseAt": 24000,
       "purchasesInFirst3Min": 8,
       "totalPurchases": 59,
-      "mapCompleteAt": 172800000,
-      "activeMsAtMapComplete": 3000000,
+      "mapCompleteAt": 103680000,
+      "activeMsAtMapComplete": 1800000,
       "prestigeAvailableAt": 34560000
     }
   ],

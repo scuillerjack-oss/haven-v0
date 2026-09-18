@@ -230,14 +230,19 @@ export const WATER_MAP = {
     }),
   },
   // Repères de progression (litres cumulés livrés par cette map) — calibrés
-  // par simulation (scripts/simulate-v2.mjs) : le début doit rester rapide
-  // (premier achat en ~24s, plusieurs décisions en 2-3 min) SANS raccourcir
-  // la durée totale déjà jugée trop courte en V1 (7-30 min actives selon le
-  // profil). Cette valeur a été choisie pour retrouver, avec la nouvelle
-  // courbe, une durée totale (active et calendaire) au moins égale à celle
-  // mesurée en V1 sur les 3 profils de référence — voir le rapport V2.
-  nextMapUnlockLitersShipped: 300_000,
-  mapCompleteLitersShipped: 600_000,
+  // par simulation (scripts/simulate-v2.mjs et simulate-v3-bottleneck.mjs).
+  // V3 (section 2 du cahier des charges post-bêta) a délibérément réduit
+  // le plafond de débit de la citerne (transportCapacityUpgrades, 8
+  // niveaux au lieu de 12, valueGrowth 1.2 au lieu de 1.25) pour qu'elle
+  // devienne un vrai goulot au lieu de rester infiniment surdimensionnée
+  // — mais cela abaisse aussi le débit MAXIMAL atteignable de toute la
+  // chaîne (~2.4 L/s au lieu de ~38.8 L/s en V2), donc l'ancienne cible
+  // (600 000 L) aurait fait exploser la durée totale (le profil léger ne
+  // terminait plus sous 10 jours). Recalibrée à 120 000 L pour retrouver
+  // une durée totale (active et calendaire) proche de celle mesurée en
+  // V2 sur les mêmes 3 profils de référence — voir le rapport V3.
+  nextMapUnlockLitersShipped: 60_000,
+  mapCompleteLitersShipped: 120_000,
 };
 
 export const MAP_DEFINITIONS = { water: WATER_MAP };

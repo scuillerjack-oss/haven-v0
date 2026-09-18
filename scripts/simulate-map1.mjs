@@ -103,16 +103,16 @@ function bottleneckRecoverySim() {
   const mapDef = getMapDefinition("water");
   const mapState = game.maps.water;
   // Surinvestit la production sans jamais toucher au transport.
-  mapState.producer.bucketLevel = 4;
-  mapState.producer.movementLevel = 4;
-  mapState.producer.winchLevel = 4;
-  mapState.producer.wellLevel = 4;
+  mapState.producer.bucketLevel = mapDef.producerUpgrades.bucket.levels.at(-1).level;
+  mapState.producer.movementLevel = mapDef.producerUpgrades.movement.levels.at(-1).level;
+  mapState.producer.winchLevel = mapDef.producerUpgrades.winch.levels.at(-1).level;
+  mapState.producer.wellLevel = mapDef.producerUpgrades.well.levels.at(-1).level;
   let elapsed = 0;
   let sawSaturation = false;
   for (let i = 0; i < 120; i += 1) {
     applyTick(game, STEP_MS);
     elapsed += STEP_MS;
-    if (mapState.producer.paused) sawSaturation = true;
+    if (mapState.producer.awaitingRoom) sawSaturation = true;
   }
   const litersBefore = mapState.totalLitersShipped;
   // Le joueur corrige : améliore le transport.

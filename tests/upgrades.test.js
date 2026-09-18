@@ -44,7 +44,7 @@ test("l'atout de réduction de coût réduit bien le prix réellement débité",
   const result = purchaseMapUpgrade(game, map, WATER_MAP, "movement");
   assert.equal(result.ok, true);
   assert.ok(game.money > 0, "le coût réduit doit être strictement inférieur au tarif plein");
-  assert.equal(game.money, info.next.cost * 0.1);
+  assert.ok(Math.abs(game.money - info.next.cost * 0.1) < 1e-9, "arrondi flottant toléré, pas la valeur");
 });
 
 test("chaque famille d'amélioration a un effet distinct sur le cycle ou la capacité", () => {

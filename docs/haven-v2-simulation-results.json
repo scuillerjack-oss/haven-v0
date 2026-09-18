@@ -1,0 +1,81 @@
+{
+  "activeStart": {
+    "firstPurchaseAt": 24000,
+    "snapshots": [
+      {
+        "atMs": 60000,
+        "money": 4.5,
+        "totalPurchases": 2,
+        "progressRatio": 0.000009583333333333334
+      },
+      {
+        "atMs": 180000,
+        "money": 1.7,
+        "totalPurchases": 8,
+        "progressRatio": 0.00003975
+      },
+      {
+        "atMs": 600000,
+        "money": 12.14,
+        "totalPurchases": 20,
+        "progressRatio": 0.00020095000000000014
+      },
+      {
+        "atMs": 1800000,
+        "money": 67.6,
+        "totalPurchases": 40,
+        "progressRatio": 0.0013042666666666669
+      },
+      {
+        "atMs": 3600000,
+        "money": 567.7,
+        "totalPurchases": 53,
+        "progressRatio": 0.006082899999999988
+      }
+    ]
+  },
+  "activeCompletion": {
+    "mapCompleteActiveMs": 147781000,
+    "totalPurchases": 67
+  },
+  "profileResults": [
+    {
+      "name": "Léger : 2 sessions/jour de 1 min",
+      "firstPurchaseAt": 24000,
+      "purchasesInFirst3Min": 2,
+      "totalPurchases": 67,
+      "mapCompleteAt": 302400000,
+      "activeMsAtMapComplete": 420000,
+      "prestigeAvailableAt": 86400000
+    },
+    {
+      "name": "Modéré : 3 sessions/jour de 3 min",
+      "firstPurchaseAt": 24000,
+      "purchasesInFirst3Min": 8,
+      "totalPurchases": 67,
+      "mapCompleteAt": 201600000,
+      "activeMsAtMapComplete": 1260000,
+      "prestigeAvailableAt": 57600000
+    },
+    {
+      "name": "Assidu : 5 sessions/jour de 5 min",
+      "firstPurchaseAt": 24000,
+      "purchasesInFirst3Min": 8,
+      "totalPurchases": 67,
+      "mapCompleteAt": 120960000,
+      "activeMsAtMapComplete": 2100000,
+      "prestigeAvailableAt": 34560000
+    }
+  ],
+  "floors": {
+    "allPhasesRespectFloor": true,
+    "worstPhase": {
+      "pathId": "movement",
+      "level": 8,
+      "phaseKey": "walkBack",
+      "durationMs": 252
+    },
+    "allTransportRespectFloor": true,
+    "worstTransportMs": 6000
+  }
+}

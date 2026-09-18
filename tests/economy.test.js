@@ -31,6 +31,7 @@ test("un tick suffisamment long fait déposer un seau dans le stockage", () => {
 
 test("plusieurs seaux déposés d'un coup (gros deltaMs), jamais de progrès perdu entre deux", () => {
   const map = createMapState();
+  map.transport.frequencyLevel = 999; // isole le producteur : aucun passage de transport pendant ce test.
   const outboundMs = stageTotalMs(map, WATER_MAP, undefined, "outbound");
   const returnMs = stageTotalMs(map, WATER_MAP, undefined, "return");
   const cycleMs = outboundMs + returnMs;
@@ -49,6 +50,7 @@ test("plusieurs seaux déposés d'un coup (gros deltaMs), jamais de progrès per
 
 test("goulot d'étranglement : un stockage plein bloque le travailleur exactement au point de livraison, jamais un retour animé pour rien", () => {
   const map = createMapState();
+  map.transport.frequencyLevel = 999; // isole le producteur : aucun passage de transport pendant ce test.
   map.buffer.level = 1;
   const capacity = bufferCapacity(map, WATER_MAP);
   map.buffer.currentLiters = capacity; // déjà plein
@@ -93,20 +95,23 @@ test("hors-ligne : le débit effectif est borné par le maillon le plus lent (pr
   assert.ok(offline.litersShipped > 0);
 
   const overinvestedMap = createMapState();
-  overinvestedMap.producer.bucketLevel = 4; // gros seau
-  overinvestedMap.producer.movementLevel = 4;
-  overinvestedMap.producer.winchLevel = 4;
-  overinvestedMap.producer.wellLevel = 4; // production largement au-dessus du transport de base
+  // Niveau maximum de chaque famille productrice (dynamique : peu importe
+  // combien de niveaux la courbe compte réellement) pour garantir un vrai
+  // surinvestissement, quelle que soit la calibration économique du moment.
+  overinvestedMap.producer.bucketLevel = WATER_MAP.producerUpgrades.bucket.levels.at(-1).level;
+  overinvestedMap.producer.movementLevel = WATER_MAP.producerUpgrades.movement.levels.at(-1).level;
+  overinvestedMap.producer.winchLevel = WATER_MAP.producerUpgrades.winch.levels.at(-1).level;
+  overinvestedMap.producer.wellLevel = WATER_MAP.producerUpgrades.well.levels.at(-1).level;
   const offlineOver = computeMapOfflineProgress(overinvestedMap, WATER_MAP, oneHour);
   assert.equal(offlineOver.transportIsBottleneck, true); // le joueur a créé son propre goulot
 });
 
 test("applyMapOfflineProgress est cohérent : le stockage finit plein si le transport est le goulot", () => {
   const map = createMapState();
-  map.producer.bucketLevel = 4;
-  map.producer.movementLevel = 4;
-  map.producer.winchLevel = 4;
-  map.producer.wellLevel = 4;
+  map.producer.bucketLevel = WATER_MAP.producerUpgrades.bucket.levels.at(-1).level;
+  map.producer.movementLevel = WATER_MAP.producerUpgrades.movement.levels.at(-1).level;
+  map.producer.winchLevel = WATER_MAP.producerUpgrades.winch.levels.at(-1).level;
+  map.producer.wellLevel = WATER_MAP.producerUpgrades.well.levels.at(-1).level;
   const result = applyMapOfflineProgress(map, WATER_MAP, 3600 * 1000);
   assert.equal(result.transportIsBottleneck, true);
   assert.equal(map.buffer.currentLiters, bufferCapacity(map, WATER_MAP));

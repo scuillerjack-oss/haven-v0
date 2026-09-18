@@ -205,6 +205,27 @@ async function main() {
         } else {
           log(`OK largeur ${width}px : pleine largeur, aucun débordement`);
         }
+
+        // Décor de campagne (V3, section 6) : purement décoratif, mais
+        // encore faut-il qu'il reste dans le cadre visible (recadrage
+        // horizontal du "slice" sur viewBox) à chaque largeur testée —
+        // pas seulement à celle utilisée pendant le développement.
+        const scenery = await page.evaluate(() => {
+          const svgRect = document.querySelector(".haven-scene").getBoundingClientRect();
+          const within = (sel) => {
+            const el = document.querySelector(sel);
+            if (!el) return false;
+            const r = el.getBoundingClientRect();
+            return r.left >= svgRect.left - 1 && r.right <= svgRect.right + 1 && r.width > 0;
+          };
+          return { cabin: within(".cabin"), tree: within(".tree:not(.tree-small)"), treeSmall: within(".tree-small") };
+        });
+        if (!scenery.cabin || !scenery.tree || !scenery.treeSmall) {
+          failures += 1;
+          log(`ÉCHEC largeur ${width}px : décor de campagne recadré hors du cadre visible`, scenery);
+        } else {
+          log(`OK largeur ${width}px : décor de campagne entièrement visible`);
+        }
         await page.close();
       }
     }

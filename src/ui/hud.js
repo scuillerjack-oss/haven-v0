@@ -1,5 +1,6 @@
 import { sceneMarkup } from "./scene.js";
 import { formatNumber, formatUpgradeEffect } from "./format.js";
+import { coinIcon, familyIconMarkup } from "./icons.js";
 import { UPGRADE_PATH_IDS, nextUpgradeInfo, upgradeEffect } from "../engine/mapUpgrades.js";
 import {
   PERKS,
@@ -16,6 +17,7 @@ export function shellMarkup() {
     <div class="app">
       <header class="topbar">
         <div class="resource">
+          ${coinIcon()}
           <span class="resource-value" id="money-value">0</span>
           <span class="resource-label">Argent</span>
         </div>
@@ -84,10 +86,11 @@ export function shellMarkup() {
 function upgradeCardMarkup(gameState, mapState, mapDef, pathId) {
   const info = nextUpgradeInfo(mapState, mapDef, pathId);
   const costMultiplier = 1 - perkValue(gameState, "upgradeCostReduction");
+  const icon = familyIconMarkup(pathId);
   if (!info.next) {
     return `
       <article class="card card-maxed" data-path="${pathId}">
-        <h3>${info.familyDef.name}</h3>
+        <h3>${icon}${info.familyDef.name}</h3>
         <p class="card-maxed-text">Niveau maximum atteint</p>
       </article>
     `;
@@ -97,7 +100,7 @@ function upgradeCardMarkup(gameState, mapState, mapDef, pathId) {
   const effect = upgradeEffect(mapDef, pathId, info.current, info.next);
   return `
     <article class="card" data-path="${pathId}">
-      <h3>${info.familyDef.name}</h3>
+      <h3>${icon}${info.familyDef.name}</h3>
       <p class="card-levels">Niveau ${info.currentLevel} → ${info.next.level}</p>
       <p class="card-effect">${formatUpgradeEffect(effect)}</p>
       <button class="buy-btn" data-buy-path="${pathId}" ${canAfford ? "" : "disabled"}>

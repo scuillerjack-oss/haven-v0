@@ -14,7 +14,50 @@ export function sceneMarkup() {
   return `
     <svg class="haven-scene" viewBox="0 0 400 520" role="img" aria-label="La chaîne de l'eau" preserveAspectRatio="xMidYMax slice">
       <rect class="scene-sky" x="0" y="0" width="400" height="520" />
+
+      <!-- Direction visuelle V3 (cahier des charges post-bêta, section 6) :
+           un petit lieu de campagne cohérent plutôt qu'un espace vide.
+           Purement décoratif, statique (aucune animation, aucun élément
+           interactif) : jamais repositionné, jamais superposé aux éléments
+           fonctionnels (puits/stockage/camion/travailleur), qui restent
+           seuls à bouger. Formes plates simples (SVG inline) pour rester
+           légères et cohérentes avec le style existant, jamais une image
+           rastérisée. -->
+      <!-- Zone garantie libre de tout élément fonctionnel, quel que soit x :
+           le plus haut d'entre eux (le sommet de la citerne de stockage)
+           s'arrête à y=260. Tout le décor tient donc au-dessus de cette
+           ligne (y <= 250), et entre x=85 et x=315 pour rester visible
+           même sur la largeur la plus étroite testée (320px, la plus
+           défavorable au recadrage horizontal du "slice" — voir
+           scripts/check-mobile-resume.mjs) — vérifié par mesure réelle
+           des rectangles rendus (getBoundingClientRect), pas supposé. -->
+      <g class="scenery" aria-hidden="true">
+        <path class="hill hill-back" d="M0 260 Q100 165 220 205 T400 185 L400 380 L0 380 Z" />
+        <path class="hill hill-front" d="M0 300 Q140 225 260 255 T400 240 L400 380 L0 380 Z" />
+
+        <g class="cabin" transform="translate(280, 240)">
+          <rect x="-15" y="-20" width="30" height="20" class="cabin-wall" />
+          <polygon points="-18,-20 18,-20 0,-33" class="cabin-roof" />
+          <rect x="-5" y="-11" width="9" height="11" class="cabin-door" />
+          <rect x="-11" y="-15" width="6" height="6" class="cabin-window" />
+          <rect x="3" y="-30" width="4" height="9" class="cabin-chimney" />
+        </g>
+
+        <g class="tree" transform="translate(120, 250)">
+          <rect x="-3" y="-26" width="6" height="26" class="tree-trunk" />
+          <circle cx="0" cy="-34" r="17" class="tree-canopy" />
+          <circle cx="-11" cy="-26" r="12" class="tree-canopy" />
+          <circle cx="11" cy="-28" r="13" class="tree-canopy" />
+        </g>
+        <g class="tree tree-small" transform="translate(305, 235)">
+          <rect x="-2.5" y="-20" width="5" height="20" class="tree-trunk" />
+          <circle cx="0" cy="-26" r="13" class="tree-canopy" />
+          <circle cx="-8" cy="-20" r="9" class="tree-canopy" />
+        </g>
+      </g>
+
       <path class="scene-ground" d="M0 380 L400 380 L400 520 L0 520 Z" />
+      <path class="scene-path" d="M20 380 Q150 372 400 378 L400 384 Q150 378 20 384 Z" />
 
       <g class="well" transform="translate(${WELL_X}, 380)">
         <ellipse cx="0" cy="0" rx="34" ry="10" class="well-rim" />

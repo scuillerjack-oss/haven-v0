@@ -59,7 +59,7 @@ body {
 
 .resource {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
 }
 
@@ -119,6 +119,42 @@ body {
 
 .scene-ground {
   fill: var(--ground-color);
+}
+
+/* Décor de campagne (V3, section 6) : palette dérivée des couleurs déjà
+   en place (sky/ground/accent), jamais de nouvelles teintes criardes qui
+   détonneraient avec l'interface sombre/verte existante. */
+.hill-back {
+  fill: #223530;
+}
+.hill-front {
+  fill: #2b4038;
+}
+.scene-path {
+  fill: #6b5942;
+  opacity: 0.55;
+}
+.cabin-wall {
+  fill: #4a3d2e;
+}
+.cabin-roof {
+  fill: #2e4a3d;
+}
+.cabin-door,
+.cabin-window {
+  fill: #1a2321;
+}
+.cabin-chimney {
+  fill: #3d3226;
+}
+.tree-trunk {
+  fill: #4a3d2e;
+}
+.tree-canopy {
+  fill: #2f5240;
+}
+.tree-small .tree-canopy {
+  fill: #294a3a;
 }
 
 .bottleneck-caption {
@@ -447,6 +483,49 @@ body {
 .card h3 {
   margin: 0 0 4px;
   font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Pictogrammes V3 (section 6) : une forme par famille, plus une pièce
+   à côté de l'argent — formes SVG plates, aucune image téléchargée. */
+.family-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.family-icon .icon-shape {
+  fill: var(--accent-soft);
+}
+.family-icon .icon-shape-top {
+  fill: var(--accent);
+}
+.family-icon .icon-line {
+  stroke: var(--accent-soft);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.family-icon .icon-line-bold {
+  stroke: var(--accent-soft);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  fill: var(--accent-soft);
+}
+.icon-coin {
+  width: 20px;
+  height: 20px;
+}
+.icon-coin-back {
+  fill: #8a6a2e;
+}
+.icon-coin-front {
+  fill: #e0b84c;
+}
+.icon-coin-ring {
+  fill: none;
+  stroke: #a67f34;
+  stroke-width: 1;
 }
 
 .card-current {

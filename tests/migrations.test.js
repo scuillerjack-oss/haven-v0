@@ -23,6 +23,24 @@ test("rejette une sauvegarde d'une version future inconnue plutôt que de la cor
   assert.equal(result, null);
 });
 
+test("une sauvegarde de la version courante mais avec des champs manquants est complétée, jamais un crash", () => {
+  const truncated = { version: SAVE_VERSION, money: 500 }; // pas de perks, maps, audio, tutorial, telemetry
+  const result = migrateSave(truncated);
+  assert.equal(result.money, 500); // préservé
+  assert.equal(typeof result.perks.productionGlobal, "number");
+  assert.ok(result.maps.water);
+  assert.ok(result.audio);
+  assert.ok(result.tutorial.seen);
+  assert.ok(result.telemetry.sessions);
+});
+
+test("une sauvegarde de la version courante avec des atouts partiellement présents complète seulement ce qui manque", () => {
+  const partial = { version: SAVE_VERSION, perks: { productionGlobal: 2 } };
+  const result = migrateSave(partial);
+  assert.equal(result.perks.productionGlobal, 2); // préservé, pas écrasé
+  assert.equal(result.perks.cycleSpeed, 0); // complété
+});
+
 test("migre une sauvegarde V0 (version 1) vers une run V1 neuve, sans planter et sans supprimer les préférences audio", () => {
   const v0Save = {
     version: 1,

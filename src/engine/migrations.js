@@ -1,5 +1,6 @@
 import { SAVE_VERSION } from "./balance.js";
-import { createInitialState } from "./state.js";
+import { createInitialState, createMapState } from "./state.js";
+import { PERKS } from "./meta.js";
 
 // V0/V1-bêta (version 1) utilisait un modèle économique complètement
 // différent (jardin abstrait à 4 productions). La V1 majeure le remplace
@@ -31,6 +32,34 @@ export const migrations = {
   1: migrateV1ToV2,
 };
 
+// Filet de sécurité contre les champs absents (section 22 : une
+// sauvegarde de la version courante peut malgré tout avoir été altérée
+// à la main, tronquée par un stockage plein, ou provenir d'un ancien
+// build de cette même V1 avec un champ en moins). Ne remplace jamais un
+// champ présent, ne fabrique que ce qui manque.
+function fillMissingDefaults(state) {
+  const fresh = createInitialState(typeof state.createdAt === "number" ? state.createdAt : Date.now());
+  const perks = { ...fresh.perks, ...(state.perks && typeof state.perks === "object" ? state.perks : {}) };
+  for (const id of Object.keys(PERKS)) {
+    if (typeof perks[id] !== "number") perks[id] = 0;
+  }
+
+  const maps = state.maps && typeof state.maps === "object" ? { ...state.maps } : fresh.maps;
+  for (const mapId of Object.keys(fresh.maps)) {
+    if (!maps[mapId] || typeof maps[mapId] !== "object") maps[mapId] = createMapState();
+  }
+
+  return {
+    ...fresh,
+    ...state,
+    audio: { ...fresh.audio, ...(state.audio && typeof state.audio === "object" ? state.audio : {}) },
+    tutorial: { seen: { ...(state.tutorial?.seen && typeof state.tutorial.seen === "object" ? state.tutorial.seen : {}) } },
+    telemetry: { ...fresh.telemetry, ...(state.telemetry && typeof state.telemetry === "object" ? state.telemetry : {}) },
+    perks,
+    maps,
+  };
+}
+
 // Rejette proprement une sauvegarde illisible ou d'une version future
 // inconnue, plutôt que de planter ou de silencieusement corrompre l'état.
 export function migrateSave(raw) {
@@ -46,5 +75,5 @@ export function migrateSave(raw) {
     state = step(state);
     version = state.version;
   }
-  return state;
+  return fillMissingDefaults(state);
 }

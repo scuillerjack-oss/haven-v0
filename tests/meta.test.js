@@ -22,6 +22,19 @@ test("un atout refuse si les Perles manquent, accepte sinon, débite le coût ex
   assert.equal(game.perks.productionGlobal, 1);
 });
 
+test("un atout au niveau maximum refuse un nouvel achat", () => {
+  const game = createInitialState(0);
+  game.perles = 999999;
+  for (let i = 0; i < PERKS.offlineEfficiency.levels.length + 2; i += 1) {
+    purchasePerk(game, "offlineEfficiency");
+  }
+  const maxLevel = PERKS.offlineEfficiency.levels.at(-1).level;
+  assert.equal(game.perks.offlineEfficiency, maxLevel);
+  const result = purchasePerk(game, "offlineEfficiency");
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "max");
+});
+
 test("perlesEarnable croît avec l'argent gagné dans la run, jamais négatif", () => {
   const game = createInitialState(0);
   assert.equal(perlesEarnable(game), 0);

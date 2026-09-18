@@ -119,6 +119,74 @@ async function main() {
       await page.close();
     }
 
+    // --- Test 3 : le crédit hors-ligne n'est jamais compté deux fois pour
+    // la même absence, même si plusieurs signaux de reprise se déclenchent
+    // (visibilitychange + focus + pageshow) juste après le calcul initial ---
+    {
+      const craftedSave = {
+        version: 2,
+        money: 0,
+        totalMoneyEarnedThisRun: 0,
+        perles: 0,
+        prestigeCount: 0,
+        currentMapId: "water",
+        maps: {
+          water: {
+            producer: { bucketLevel: 1, movementLevel: 1, winchLevel: 1, wellLevel: 1, cycleProgressMs: 0, paused: false },
+            buffer: { level: 1, currentLiters: 0 },
+            transport: { capacityLevel: 1, frequencyLevel: 1, timerMs: 0 },
+            globalProductivityLevel: 1,
+            totalLitersShipped: 0,
+          },
+        },
+        perks: {},
+        audio: { muted: false, volume: 0.5 },
+        tutorial: { seen: {} },
+        telemetry: { sessions: [], returns: [], unlocks: [], prestiges: [] },
+        ui: {},
+        lastSeen: Date.now() - 70_000, // 70s d'absence simulée, déjà présente au chargement
+        createdAt: Date.now() - 200_000,
+      };
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      await context.addInitScript((save) => {
+        localStorage.setItem("haven-v0-save", JSON.stringify(save));
+      }, craftedSave);
+      const page = await context.newPage();
+      const errors = [];
+      page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+
+      await page.goto(BASE_URL, { waitUntil: "networkidle" });
+      await page.waitForSelector("#money-value");
+      await page.waitForTimeout(300);
+      const moneyAfterBoot = await page.textContent("#money-value");
+
+      // Signaux de reprise redondants, comme un vrai retour PWA multiplie
+      // parfois visibilitychange/focus/pageshow pour un seul événement réel.
+      await page.evaluate(() => {
+        Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+        window.dispatchEvent(new Event("focus"));
+        window.dispatchEvent(new Event("pageshow", { bubbles: true }));
+      });
+      await page.waitForTimeout(300);
+      const moneyAfterRedundantSignals = await page.textContent("#money-value");
+
+      if (moneyAfterRedundantSignals !== moneyAfterBoot) {
+        failures += 1;
+        log("ÉCHEC : le crédit hors-ligne a été compté une seconde fois pour la même absence", {
+          moneyAfterBoot,
+          moneyAfterRedundantSignals,
+        });
+      } else {
+        log("OK : le crédit hors-ligne reste idempotent malgré des signaux de reprise redondants", { moneyAfterBoot });
+      }
+      if (errors.length > 0) {
+        failures += 1;
+        log("ÉCHEC : erreurs pendant le test d'idempotence hors-ligne", errors);
+      }
+      await page.close();
+    }
+
     // --- Test 2 : pas de débordement horizontal à plusieurs largeurs portrait ---
     {
       for (const width of [320, 360, 390, 414, 480]) {

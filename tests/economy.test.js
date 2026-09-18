@@ -127,3 +127,22 @@ test("une absence négative ou nulle ne rapporte jamais rien", () => {
   const zero = computeMapOfflineProgress(map, WATER_MAP, 0);
   assert.equal(zero.litersShipped, 0);
 });
+
+test("une horloge anormale (delta énorme, ex. changement d'heure système) ne produit ni NaN ni infini", () => {
+  const map = createMapState();
+  const absurd = computeMapOfflineProgress(map, WATER_MAP, Number.MAX_SAFE_INTEGER);
+  assert.ok(Number.isFinite(absurd.litersShipped));
+  assert.ok(Number.isFinite(absurd.moneyEarned));
+  assert.ok(absurd.litersShipped >= 0);
+});
+
+test("de nombreux cycles longs successifs ne dérivent jamais (pas de NaN, pas de valeur négative)", () => {
+  const map = createMapState();
+  for (let i = 0; i < 5000; i += 1) {
+    tickMap(map, WATER_MAP, 137); // pas rond, exprès, pour exposer un arrondi qui dériverait
+  }
+  assert.ok(Number.isFinite(map.buffer.currentLiters));
+  assert.ok(Number.isFinite(map.totalLitersShipped));
+  assert.ok(map.buffer.currentLiters >= 0);
+  assert.ok(map.producer.cycleProgressMs < producerCycleMs(map, WATER_MAP) + 1e-6);
+});

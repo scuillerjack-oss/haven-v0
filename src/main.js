@@ -172,7 +172,20 @@ function loop() {
   }
 }
 
-setInterval(loop, TICK_MS);
+let loopIntervalId = null;
+function startLoop() {
+  if (loopIntervalId !== null) return;
+  loopIntervalId = setInterval(loop, TICK_MS);
+}
+function restartLoop() {
+  if (loopIntervalId !== null) {
+    clearInterval(loopIntervalId);
+    loopIntervalId = null;
+  }
+  startLoop();
+}
+
+startLoop();
 
 // --- Rendu ---
 
@@ -308,27 +321,62 @@ function advanceOnboardingOnDrawerOpen() {
 }
 
 // --- Cycle de vie / sauvegarde ---
+//
+// Bug mobile réel diagnostiqué : après avoir quitté puis rouvert l'app, les
+// taps semblaient morts. Cause probable — en mode PWA « standalone » sur
+// iOS Safari, `visibilitychange` est documenté comme peu fiable à lui seul ;
+// s'il ne se déclenche pas au retour, `lastTickTime`/`state.lastSeen`
+// restent bloqués sur un instant d'avant la mise en arrière-plan, et si la
+// moindre exception survient pendant le traitement de la reprise (calcul
+// hors-ligne, rendu de la modale de retour...), la fonction s'interrompt
+// avant de les remettre à jour — la boucle continue alors de calculer ses
+// deltas depuis un passé de plus en plus lointain. Double correctif : (1)
+// écouter aussi pagehide/pageshow/focus/blur en plus de visibilitychange,
+// jamais un seul signal ; (2) envelopper la reprise dans un bloc
+// try/finally qui garantit que l'horloge et la boucle sont toujours
+// remises d'aplomb, même si la logique métier a levé une erreur.
 
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") {
-    state.lastSeen = Date.now();
+function handleSuspend() {
+  try {
     recordSessionEnd(state, Date.now());
     persist();
-    return;
+  } catch (err) {
+    console.error("HAVEN: erreur pendant la mise en veille", err);
+  } finally {
+    state.lastSeen = Date.now();
   }
+}
 
+let lastResumeAt = 0;
+function handleResume() {
   const now = Date.now();
-  const gap = now - (state.lastSeen ?? now);
-  reconcileElapsed(gap, { isColdStart: true });
-  syncStage();
-  recordSessionStart(state, now);
-  lastTickTime = now;
-  state.lastSeen = now;
-  updateNumbers();
-});
+  // Plusieurs signaux (visibilitychange, pageshow, focus) peuvent se
+  // déclencher pour une seule et même vraie reprise : on ne traite qu'une
+  // fois par fenêtre de 250 ms.
+  if (now - lastResumeAt < 250) return;
+  lastResumeAt = now;
+  try {
+    const gap = now - (state.lastSeen ?? now);
+    reconcileElapsed(gap, { isColdStart: true });
+    syncStage();
+    recordSessionStart(state, now);
+  } catch (err) {
+    console.error("HAVEN: erreur pendant la reprise, l'état reste jouable", err);
+  } finally {
+    restartLoop();
+    if (audioStarted) audio.resume(); // le navigateur suspend l'AudioContext en arrière-plan.
+    lastTickTime = now;
+    state.lastSeen = now;
+    updateNumbers();
+  }
+}
 
-window.addEventListener("beforeunload", () => {
-  state.lastSeen = Date.now();
-  recordSessionEnd(state, Date.now());
-  persist();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") handleSuspend();
+  else handleResume();
 });
+window.addEventListener("pagehide", handleSuspend);
+window.addEventListener("pageshow", handleResume);
+window.addEventListener("blur", handleSuspend);
+window.addEventListener("focus", handleResume);
+window.addEventListener("beforeunload", handleSuspend);

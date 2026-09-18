@@ -18,6 +18,7 @@
 html,
 body {
   margin: 0;
+  width: 100%;
   height: 100%;
   background: var(--panel-bg);
   color: var(--text-main);
@@ -28,7 +29,15 @@ body {
 
 #app,
 .app {
-  height: 100dvh;
+  /* 100vh d'abord (stable dès le premier paint), puis 100svh (petit
+     viewport garanti) en amélioration progressive. JAMAIS 100dvh seul ici :
+     dvh se recalcule de façon asynchrone quand la barre d'adresse mobile
+     se rétracte, ce qui provoque exactement le bug observé (le jeu
+     n'occupe pas toute la largeur/hauteur puis se recale soudainement,
+     la scène SVG en flex-child héritant de cette taille instable). */
+  height: 100vh;
+  height: 100svh;
+  width: 100%;
   max-width: 520px;
   margin: 0 auto;
   display: flex;
@@ -452,6 +461,13 @@ body {
   justify-content: center;
   z-index: 20;
   padding: 20px;
+}
+
+/* Défense en profondeur : même si [hidden] échouait à s'appliquer pour une
+   raison quelconque après une reprise mobile, un overlay non explicitement
+   marqué visible ne doit jamais pouvoir intercepter les taps sur la scène. */
+.modal-backdrop[hidden] {
+  pointer-events: none;
 }
 
 .modal {

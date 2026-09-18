@@ -97,9 +97,11 @@ test("la grandeur affichée par upgradeEffect() correspond exactement à ce que 
       const real = durations.find((p) => p.key === phaseKey).durationMs;
       assert.ok(Math.abs(effect.next * 1000 - real) < 1e-6);
     } else if (pathId === "globalProductivity") {
-      const realMultiplier = 1 + effect.next / 100;
+      // Grandeur concrète (argent par litre vendu), jamais un pourcentage
+      // abstrait : voir mapEconomy.js, ce multiplicateur ne fait circuler
+      // aucun litre de plus, il augmente seulement le prix réellement payé.
       assert.equal(map.globalProductivityLevel, info.next.level);
-      assert.ok(Math.abs(realMultiplier - info.next.multiplier) < 1e-9);
+      assert.ok(Math.abs(effect.next - WATER_MAP.pricePerLiter * info.next.multiplier) < 1e-9);
     }
   }
 });

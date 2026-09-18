@@ -22,8 +22,9 @@ function formatPlainNumber(n) {
 
 // "20 L" (avec espace) pour les litres, "1.8s"/"+15%" (sans espace) pour
 // les durées et pourcentages — convention française usuelle des exemples
-// du cahier des charges V2.
-const EFFECT_UNIT = { liters: " L", seconds: "s", percent: "%" };
+// du cahier des charges V2. "money" (argent par litre vendu) n'a pas de
+// symbole dédié dans l'UI (voir le HUD, juste "Argent" en toutes lettres).
+const EFFECT_UNIT = { liters: " L", seconds: "s", percent: "%", money: "" };
 
 // Construit la ligne "valeur actuelle -> valeur suivante" à partir de
 // upgradeEffect() (mapUpgrades.js) : jamais un pourcentage abstrait seul

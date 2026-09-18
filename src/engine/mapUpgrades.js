@@ -79,11 +79,15 @@ export function upgradeEffect(mapDef, pathId, currentLevelObj, nextLevelObj) {
       };
     }
     case "globalProductivity":
+      // Grandeur concrète, jamais un pourcentage abstrait : ce
+      // multiplicateur ne fait circuler aucun litre de plus (voir
+      // mapEconomy.js), il augmente uniquement l'argent gagné par litre
+      // réellement vendu.
       return {
-        kind: "percent",
-        current: (currentLevelObj.multiplier - 1) * 100,
-        next: (nextLevelObj.multiplier - 1) * 100,
-        suffix: "de productivité",
+        kind: "money",
+        current: mapDef.pricePerLiter * currentLevelObj.multiplier,
+        next: mapDef.pricePerLiter * nextLevelObj.multiplier,
+        suffix: "par litre vendu",
       };
     default:
       return null;

@@ -208,8 +208,17 @@ export const WATER_MAP = {
       labels: ["Tournée régulière", "Chauffeur motivé", "Deuxième chauffeur", "Flotte dédiée"],
     }),
   },
+  // V3 : renommé après vérification de l'effet réel dans le moteur
+  // (section 3 du cahier des charges post-bêta) — "Productivité" ne
+  // disait pas au joueur QUOI exactement ce multiplicateur modifiait.
+  // Vérifié dans mapEconomy.js (tickTransport / computeMapOfflineProgress) :
+  // il ne fait jamais circuler plus d'eau que la production ou le
+  // transport ne le permettent déjà — il multiplie uniquement l'argent
+  // gagné par litre vendu, uniformément sur toute la chaîne. D'où le nom
+  // et l'affichage en prix par litre (voir upgradeEffect() dans
+  // mapUpgrades.js), jamais un pourcentage abstrait pour cette famille.
   globalProductivityUpgrades: {
-    name: "Productivité",
+    name: "Rendement de vente",
     levels: growingValueLevels({
       count: 8,
       baseCost: 60,
@@ -217,7 +226,7 @@ export const WATER_MAP = {
       baseValue: 1,
       valueGrowth: 1.15,
       valueKey: "multiplier",
-      labels: ["Rythme normal", "Organisation", "Méthode Kaizen"],
+      labels: ["Tarif standard", "Meilleure clientèle", "Contrat de gros"],
     }),
   },
   // Repères de progression (litres cumulés livrés par cette map) — calibrés

@@ -186,9 +186,17 @@ export function computeMapOfflineProgress(mapState, mapDef, elapsedMs, modifiers
   const producerRate = producerRatePerMs(mapState, mapDef, modifiers);
   const transportRate = transportThroughputPerMs(mapState, mapDef, modifiers);
   const productivity = globalProductivityMultiplier(mapState, mapDef);
-  const effectiveRate = Math.min(producerRate, transportRate) * productivity;
+  // La productivité ne fait jamais physiquement circuler plus d'eau
+  // qu'un seul maillon (production/transport) n'en autorise — elle
+  // multiplie seulement l'argent gagné par litre vendu (voir
+  // tickTransport, le chemin actif de référence). Appliquer le
+  // multiplicateur AVANT litersShipped, comme le faisait un ancien
+  // calcul, aurait fait progresser la carte plus vite hors-ligne qu'en
+  // jeu actif pour un même achat — un vrai décalage entre les deux
+  // chemins, jamais voulu.
+  const effectiveRate = Math.min(producerRate, transportRate);
   const litersShipped = effectiveRate * elapsedMs;
-  const moneyEarned = litersShipped * mapDef.pricePerLiter;
+  const moneyEarned = litersShipped * mapDef.pricePerLiter * productivity;
   // Le transport est le goulot dès qu'il ne peut pas absorber tout ce que
   // la production envoie : c'est alors le stockage qui sature, pas la
   // production qui manque de rythme.

@@ -110,6 +110,31 @@ test("hors-ligne : le débit effectif est borné par le maillon le plus lent (pr
   assert.equal(offlineOver.transportIsBottleneck, true); // le joueur a créé son propre goulot
 });
 
+// V3 (section 3 du cahier des charges post-bêta) : "Rendement de vente"
+// (ex-"Productivité") ne doit JAMAIS faire circuler plus d'eau que la
+// production/le transport ne le permettent déjà — seulement augmenter
+// l'argent gagné par litre vendu. Un ancien calcul hors-ligne appliquait
+// ce multiplicateur AVANT litersShipped, ce qui aurait fait progresser la
+// carte plus vite hors-ligne qu'en jeu actif pour un même achat : les deux
+// chemins doivent rester cohérents.
+test("le rendement de vente n'affecte jamais les litres physiquement transportés, ni en jeu actif ni hors-ligne", () => {
+  const withBonus = createMapState();
+  withBonus.globalProductivityLevel = WATER_MAP.globalProductivityUpgrades.levels.at(-1).level;
+  const withoutBonus = createMapState();
+  const oneHour = 3600 * 1000;
+
+  const offlineWith = computeMapOfflineProgress(withBonus, WATER_MAP, oneHour);
+  const offlineWithout = computeMapOfflineProgress(withoutBonus, WATER_MAP, oneHour);
+  assert.ok(Math.abs(offlineWith.litersShipped - offlineWithout.litersShipped) < 1e-9);
+  assert.ok(offlineWith.moneyEarned > offlineWithout.moneyEarned); // l'argent, lui, augmente bien
+
+  const interval = transportIntervalMs(withBonus, WATER_MAP);
+  const activeWith = tickMap(withBonus, WATER_MAP, interval);
+  const activeWithout = tickMap(withoutBonus, WATER_MAP, interval);
+  assert.equal(activeWith.litersShipped, activeWithout.litersShipped);
+  assert.ok(activeWith.moneyEarned > activeWithout.moneyEarned);
+});
+
 test("applyMapOfflineProgress est cohérent : le stockage finit plein si le transport est le goulot", () => {
   const map = createMapState();
   map.producer.bucketLevel = WATER_MAP.producerUpgrades.bucket.levels.at(-1).level;

@@ -76,12 +76,13 @@ async function main() {
       });
 
       await page.goto(BASE_URL, { waitUntil: "networkidle" });
-      await page.waitForSelector("#tap-zone");
-      const box = await page.locator("#tap-zone").boundingBox();
+      await page.waitForSelector("#drawer-handle");
 
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await page.click("#drawer-handle"); // ouvre
       await page.waitForTimeout(100);
-      const before = await page.textContent("#vitality-value");
+      await page.click("#drawer-handle"); // referme, pour repartir d'un état connu
+      await page.waitForTimeout(100);
+      const before = await page.getAttribute("#drawer", "data-open"); // "false" attendu
 
       await page.evaluate(() => {
         Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
@@ -98,16 +99,16 @@ async function main() {
       });
       await page.waitForTimeout(300);
 
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await page.click("#drawer-handle");
       await page.waitForTimeout(100);
-      const after = await page.textContent("#vitality-value");
+      const after = await page.getAttribute("#drawer", "data-open");
 
-      const tapStillWorks = parseFloat(after) > parseFloat(before);
-      if (!tapStillWorks) {
+      const interactionStillWorks = before === "false" && after === "true";
+      if (!interactionStillWorks) {
         failures += 1;
-        log("ÉCHEC : le tap n'a plus d'effet après une reprise simulée", { before, after });
+        log("ÉCHEC : le tiroir ne réagit plus au clic après une reprise simulée", { before, after });
       } else {
-        log("OK : le tap fonctionne toujours après suspend/resume simulé", { before, after });
+        log("OK : le clic fonctionne toujours après suspend/resume simulé", { before, after });
       }
       if (errors.length > 0) {
         failures += 1;

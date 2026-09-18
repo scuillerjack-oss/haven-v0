@@ -1,110 +1,127 @@
-// Rendu de la scène unique : un seul SVG statique dont les calques se
-// révèlent progressivement (jamais d'échange brutal d'image). Chaque
-// calque correspond à un palier de `STAGES` — l'accumulation visuelle
-// EST la transformation, pas un compteur.
+// Scène de la Map 1 : un seul SVG statique, un travailleur animé qui
+// parcourt un cycle physique complet (jamais de téléportation d'un poste
+// à l'autre), un stockage dont le niveau se voit, un camion qui arrive et
+// repart. L'inefficacité (stockage plein) devient une animation, pas un
+// blocage.
 
-const LAYER_REVEAL = {
-  water: 1,
-  moss: 2,
-  sprouts: 3,
-  bushes: 4,
-  fauna: 5,
-  glow: 6,
-};
-
-// Couleurs de fond (ciel / sol) par palier : une terre stérile devient
-// progressivement un ciel et un sol vivants.
-const STAGE_PALETTE = [
-  { sky: "#1a2321", ground: "#5c4d3c" }, // 0 terre stérile
-  { sky: "#1c2c28", ground: "#5f5340" }, // 1 premier filet d'eau
-  { sky: "#1d3730", ground: "#4f5738" }, // 2 mousse et humus
-  { sky: "#1c3d33", ground: "#3f5c36" }, // 3 premières pousses
-  { sky: "#1a4238", ground: "#315a30" }, // 4 broussailles
-  { sky: "#173f3c", ground: "#2b5a34" }, // 5 retour de la faune
-  { sky: "#123634", ground: "#245c3a" }, // 6 havre vivant
-];
+const HOME_X = 150;
+const WELL_X = 70;
+const STORAGE_X = 230;
+const TRUCK_DOCK_X = 300;
+const TRUCK_HIDDEN_X = 420;
 
 export function sceneMarkup() {
   return `
-    <svg class="haven-scene" viewBox="0 0 400 520" role="img" aria-label="Le petit monde de HAVEN" preserveAspectRatio="xMidYMax slice">
-      <defs>
-        <radialGradient id="glowGrad" cx="50%" cy="35%" r="60%">
-          <stop offset="0%" stop-color="#bfe6cf" stop-opacity="0.35" />
-          <stop offset="100%" stop-color="#bfe6cf" stop-opacity="0" />
-        </radialGradient>
-      </defs>
+    <svg class="haven-scene" viewBox="0 0 400 520" role="img" aria-label="La chaîne de l'eau" preserveAspectRatio="xMidYMax slice">
+      <rect class="scene-sky" x="0" y="0" width="400" height="520" />
+      <path class="scene-ground" d="M0 380 L400 380 L400 520 L0 520 Z" />
 
-      <rect class="layer-sky" x="0" y="0" width="400" height="520" />
-
-      <g class="layer-ground-group">
-        <path class="layer-ground" d="M0 340 C 80 300, 140 320, 210 305 C 280 292, 330 315, 400 300 L 400 520 L 0 520 Z" />
+      <g class="well" transform="translate(${WELL_X}, 380)">
+        <ellipse cx="0" cy="0" rx="34" ry="10" class="well-rim" />
+        <rect x="-30" y="-46" width="60" height="46" class="well-body" />
+        <ellipse cx="0" cy="-46" rx="30" ry="8" class="well-mouth" />
       </g>
 
-      <g class="layer water" data-layer="water">
-        <ellipse cx="200" cy="330" rx="46" ry="16" fill="#2d6f7a" />
-        <ellipse class="ripple ripple-1" cx="200" cy="330" rx="46" ry="16" />
-        <ellipse class="ripple ripple-2" cx="200" cy="330" rx="46" ry="16" />
-        <path class="rivulet" d="M200 330 C 195 360, 205 390, 198 420 C 193 445, 202 470, 197 495" />
+      <g class="storage" transform="translate(${STORAGE_X}, 380)">
+        <rect x="-38" y="-120" width="76" height="120" class="storage-tank-outline" />
+        <clipPath id="storage-clip">
+          <rect x="-36" y="-118" width="72" height="116" />
+        </clipPath>
+        <rect class="storage-fill" x="-36" y="-2" width="72" height="0" clip-path="url(#storage-clip)" />
+        <rect x="-38" y="-120" width="76" height="120" class="storage-tank-frame" fill="none" />
       </g>
 
-      <g class="layer moss" data-layer="moss">
-        <ellipse cx="110" cy="360" rx="38" ry="10" />
-        <ellipse cx="300" cy="345" rx="44" ry="11" />
-        <ellipse cx="170" cy="400" rx="30" ry="8" />
-        <ellipse cx="260" cy="420" rx="36" ry="9" />
+      <g class="truck" transform="translate(${TRUCK_HIDDEN_X}, 380)">
+        <rect x="-46" y="-40" width="92" height="34" class="truck-tank" />
+        <rect x="30" y="-26" width="20" height="20" class="truck-cab" />
+        <circle cx="-28" cy="-2" r="8" class="truck-wheel" />
+        <circle cx="24" cy="-2" r="8" class="truck-wheel" />
       </g>
 
-      <g class="layer sprouts" data-layer="sprouts">
-        <path class="sway" d="M130 358 q-4 -18 -1 -28" />
-        <path class="sway sway-b" d="M270 340 q5 -20 1 -30" />
-        <path class="sway" d="M150 405 q-3 -14 0 -22" />
-        <path class="sway sway-b" d="M240 428 q4 -16 0 -24" />
-      </g>
-
-      <g class="layer bushes" data-layer="bushes">
-        <g class="sway-slow">
-          <circle cx="85" cy="345" r="16" />
-          <circle cx="100" cy="335" r="12" />
+      <g class="worker" transform="translate(${HOME_X}, 380)">
+        <g class="worker-bucket-arm">
+          <line x1="0" y1="-30" x2="0" y2="-46" class="worker-rope" />
+          <rect x="-8" y="-46" width="16" height="12" rx="2" class="worker-bucket" />
         </g>
-        <g class="sway-slow sway-b">
-          <circle cx="320" cy="330" r="18" />
-          <circle cx="336" cy="342" r="13" />
-        </g>
-        <g class="sway-slow">
-          <circle cx="230" cy="400" r="14" />
-          <circle cx="215" cy="410" r="10" />
-        </g>
+        <circle cx="0" cy="-52" r="8" class="worker-head" />
+        <line x1="0" y1="-44" x2="0" y2="-20" class="worker-body" />
+        <line x1="0" y1="-38" x2="-9" y2="-28" class="worker-arm worker-arm-l" />
+        <line x1="0" y1="-38" x2="9" y2="-28" class="worker-arm worker-arm-r" />
+        <line x1="0" y1="-20" x2="-7" y2="0" class="worker-leg worker-leg-l" />
+        <line x1="0" y1="-20" x2="7" y2="0" class="worker-leg worker-leg-r" />
       </g>
 
-      <g class="layer fauna" data-layer="fauna">
-        <g class="bob">
-          <ellipse cx="150" cy="330" rx="7" ry="5" fill="#e7d9b8" />
-          <path d="M150 325 l6 -6" stroke="#e7d9b8" stroke-width="2" fill="none" />
-        </g>
-        <g class="bob bob-b">
-          <path d="M280 300 q8 -6 16 0 q-8 4 -16 0 Z" fill="#e7d9b8" />
-        </g>
-      </g>
-
-      <g class="layer glow" data-layer="glow">
-        <rect x="0" y="0" width="400" height="520" fill="url(#glowGrad)" />
-        <circle class="firefly firefly-1" cx="130" cy="300" r="2.4" />
-        <circle class="firefly firefly-2" cx="260" cy="280" r="2" />
-        <circle class="firefly firefly-3" cx="200" cy="250" r="2.2" />
-        <circle class="firefly firefly-4" cx="310" cy="310" r="1.8" />
+      <g class="waiting-indicator" transform="translate(${STORAGE_X - 20}, 320)">
+        <circle r="10" class="waiting-bubble" />
+        <text x="0" y="4" class="waiting-mark" text-anchor="middle">!</text>
       </g>
     </svg>
   `;
 }
 
-export function applyStageVisuals(root, stageId) {
-  root.dataset.stage = String(stageId);
-  const palette = STAGE_PALETTE[Math.min(stageId, STAGE_PALETTE.length - 1)];
-  root.style.setProperty("--sky-color", palette.sky);
-  root.style.setProperty("--ground-color", palette.ground);
+const PHASE_TO_WORKER_X = {
+  prepare: HOME_X,
+  walkToWell: null, // interpolé
+  lowerBucket: WELL_X,
+  wellFill: WELL_X,
+  raiseBucket: WELL_X,
+  walkToStorage: null, // interpolé
+  pour: STORAGE_X,
+  walkBack: null, // interpolé
+  waitingForRoom: STORAGE_X - 20,
+};
 
-  root.querySelectorAll("[data-layer]").forEach((el) => {
-    const reveal = LAYER_REVEAL[el.dataset.layer] ?? 0;
-    el.classList.toggle("is-revealed", stageId >= reveal);
-  });
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function workerX(phase) {
+  const known = PHASE_TO_WORKER_X[phase.key];
+  if (known !== null && known !== undefined) return known;
+  if (phase.key === "walkToWell") return lerp(HOME_X, WELL_X, phase.progress);
+  if (phase.key === "walkToStorage") return lerp(WELL_X, STORAGE_X, phase.progress);
+  if (phase.key === "walkBack") return lerp(STORAGE_X, HOME_X, phase.progress);
+  return HOME_X;
+}
+
+function bucketOffsetY(phase) {
+  // Descend au puits, remonte, reste en haut ailleurs. Jamais de saut brutal.
+  if (phase.key === "lowerBucket") return lerp(0, 34, phase.progress);
+  if (phase.key === "wellFill") return 34;
+  if (phase.key === "raiseBucket") return lerp(34, 0, phase.progress);
+  return 0;
+}
+
+function isCarryingWater(phase) {
+  return ["raiseBucket", "walkToStorage", "waitingForRoom"].includes(phase.key) || phase.key === "pour";
+}
+
+export function updateSceneAnimation(root, { phase, bufferRatio, truckRatio, isShipping, walking }) {
+  const worker = root.querySelector(".worker");
+  const bucketArm = root.querySelector(".worker-bucket-arm");
+  const bucket = root.querySelector(".worker-bucket");
+  const legL = root.querySelector(".worker-leg-l");
+  const legR = root.querySelector(".worker-leg-r");
+  const waitingIndicator = root.querySelector(".waiting-indicator");
+  const storageFill = root.querySelector(".storage-fill");
+  const truck = root.querySelector(".truck");
+
+  const x = workerX(phase);
+  worker.setAttribute("transform", `translate(${x}, 380)`);
+  bucketArm.setAttribute("transform", `translate(0, ${bucketOffsetY(phase)})`);
+  bucket.classList.toggle("worker-bucket-full", isCarryingWater(phase));
+
+  waitingIndicator.classList.toggle("is-visible", phase.paused);
+  worker.classList.toggle("is-walking", Boolean(walking));
+  legL.style.animationPlayState = walking ? "running" : "paused";
+  legR.style.animationPlayState = walking ? "running" : "paused";
+
+  const fillHeight = Math.max(0, Math.min(1, bufferRatio)) * 116;
+  storageFill.setAttribute("height", String(fillHeight));
+  storageFill.setAttribute("y", String(-2 - fillHeight));
+
+  const truckX = truckRatio >= 0.7 ? lerp(TRUCK_HIDDEN_X, TRUCK_DOCK_X, Math.min(1, (truckRatio - 0.7) / 0.3)) : TRUCK_HIDDEN_X;
+  truck.setAttribute("transform", `translate(${truckX}, 380)`);
+  truck.classList.toggle("is-docked", truckRatio >= 0.98);
+  truck.classList.toggle("is-shipping", Boolean(isShipping));
 }

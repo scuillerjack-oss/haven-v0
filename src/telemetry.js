@@ -1,9 +1,8 @@
-// Instrumentation locale simple, jamais envoyée nulle part : durée de
-// session, paliers atteints, retours (avec l'écart réel constaté), et
-// progression. Sert à observer le vrai test — l'envie de revenir — sans
-// jamais faire passer une simulation accélérée pour une preuve réelle.
+// Instrumentation locale simple, jamais envoyée nulle part (section 19) :
+// durée de session et retours, ordre/fréquence des achats, moments de
+// saturation, gain hors-ligne, disponibilité et exécution du prestige.
 
-const MAX_ENTRIES = 50;
+const MAX_ENTRIES = 80;
 
 function pushCapped(list, entry) {
   list.push(entry);
@@ -11,7 +10,6 @@ function pushCapped(list, entry) {
 }
 
 export function recordSessionStart(state, now = Date.now()) {
-  state.stats.sessionsCount += 1;
   pushCapped(state.telemetry.sessions, { start: now });
 }
 
@@ -24,17 +22,25 @@ export function recordSessionEnd(state, now = Date.now()) {
   }
 }
 
-export function recordReturn(state, { elapsedMs, gained, cappedAway }, now = Date.now()) {
-  pushCapped(state.telemetry.returns, {
-    at: now,
-    elapsedMs,
-    gained,
-    cappedAway,
-  });
+export function recordReturn(state, { elapsedMs, moneyEarned, cappedAway }, now = Date.now()) {
+  pushCapped(state.telemetry.returns, { at: now, elapsedMs, moneyEarned, cappedAway });
 }
 
-export function recordMilestone(state, stage, now = Date.now()) {
-  pushCapped(state.telemetry.milestones, { stageId: stage.id, name: stage.name, at: now });
+export function recordUpgradePurchase(state, { mapId, pathId, level }, now = Date.now()) {
+  if (!state.telemetry.upgrades) state.telemetry.upgrades = [];
+  pushCapped(state.telemetry.upgrades, { at: now, mapId, pathId, level });
+}
+
+// Ne journalise que le front montant (début d'une saturation), pour ne
+// pas noyer le journal d'une entrée par tick tant que ça reste bloqué.
+export function recordSaturationEdge(state, { mapId }, now = Date.now()) {
+  if (!state.telemetry.saturations) state.telemetry.saturations = [];
+  pushCapped(state.telemetry.saturations, { at: now, mapId });
+}
+
+export function recordPrestigeAvailableOnce(state, now = Date.now()) {
+  if (state.telemetry.prestigeAvailableAt) return;
+  state.telemetry.prestigeAvailableAt = now;
 }
 
 export function totalPlaytimeMs(state) {

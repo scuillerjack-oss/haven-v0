@@ -1,33 +1,41 @@
-# HAVEN — Projet 3, V0
+# HAVEN — Projet 3, V1 majeure
 
-Idle visuel : un petit monde miniature qui se restaure sous vos yeux. Pas de
-compteur-spectacle — c'est le monde qui se transforme qui est le jeu.
+Idle visuel : une chaîne de production visible (puits → seau → stockage →
+citerne) que le joueur développe, observe et équilibre. Le spectacle EST le
+jeu — pas un compteur posé sur un décor.
 
 Projet indépendant : aucun code ni asset partagé avec FRONTIÈRES, RUPTURE ou
 MURPHY.
 
-## Boucle de jeu (V0)
+## Boucle de jeu (V1)
 
-- Une scène unique : une source, un sol, une flore, une faune — 4 systèmes de
-  production maximum, chacun débloqué par la vitalité cumulée du monde.
-- 2 interactions principales : toucher la source pour puiser de l'eau (geste
-  actif), ouvrir le tiroir du bas pour acheter l'une des 15 améliorations
-  nommées (jamais de simple +10 %).
-- 7 paliers visuels cumulatifs (terre stérile → havre vivant), chacun modifie
-  visiblement la scène.
-- Sauvegarde locale automatique (`localStorage`) + progression hors-ligne
-  plafonnée (4h, 8h avec l'amélioration "Rosée nocturne"), clairement
-  expliquée au retour dans un écran « Bon retour ».
-- Audio ambiant instrumental généré en WebAudio (pas de fichier à charger),
-  mute/volume fonctionnels.
+- Un travailleur animé parcourt un cycle physique complet (puits → seau →
+  stockage → citerne), jamais de téléportation entre postes.
+- 8 familles d'amélioration à effet économique **et** visuel distinct (seau,
+  déplacement, corde/treuil, puits, stockage, citerne, fréquence transport,
+  productivité).
+- Le goulot d'étranglement (production ou transport) se voit et se comprend
+  sans ouvrir un écran de statistiques.
+- Perles (méta-monnaie) + Renaissance (prestige) : bonus permanent de
+  production à chaque reset volontaire, écran de confirmation explicite
+  (perdu / conservé / gagné), jamais de reset accidentel.
+- 8 atouts permanents universels achetés avec les Perles, valables sur toute
+  map présente ou future.
+- Architecture multi-maps data-driven prête ; une seule map est réellement
+  autorée dans cette V1 (« La chaîne de l'eau »).
+- Sauvegarde locale automatique + progression hors-ligne calculée par formule
+  (plafonnée, jamais une simulation seconde par seconde), écran de retour
+  honnête.
+- Audio ambiant instrumental (WebAudio pur), onboarding contextuel (une
+  explication par mécanique, jamais deux fois), écran d'aide.
 
 ## Stack
 
 - JavaScript vanilla (ES modules), sans framework UI.
 - Bundler : [Vite](https://vitejs.dev/).
-- Rendu de la scène : un seul SVG dont les calques se révèlent
-  progressivement (pas d'échange brutal d'image).
-- Persistance : `localStorage`.
+- Moteur économique entièrement séparé du rendu (`src/engine/`), aucune
+  dépendance au DOM — simulable et testable à grande vitesse.
+- Persistance : `localStorage`, avec migration V0→V1.
 - PWA : `manifest.webmanifest` + service worker, installable sur écran
   d'accueil.
 - Hébergement : GitHub Pages, déploiement automatique via GitHub Actions à
@@ -38,28 +46,33 @@ MURPHY.
 ```
 src/
   engine/
-    balance.js       toutes les constantes d'équilibrage (paliers, coûts, taux)
-    state.js          état initial
-    simulation.js     production, tap, achats, calcul hors-ligne
-    migrations.js     registre de migrations de sauvegarde entre versions
+    mapDefinitions.js   définitions data-driven des maps (phases, coûts, prix)
+    mapEconomy.js         moteur pur production→stockage→transport, hors-ligne
+    mapUpgrades.js        achats d'améliorations de chaîne
+    meta.js                Perles, atouts permanents, Renaissance
+    state.js               état initial
+    simulation.js          orchestration (tick/offline toutes maps, déblocage)
+    migrations.js          registre de migrations de sauvegarde
+    balance.js              constantes globales (plafond/efficacité hors-ligne)
   ui/
-    scene.js           calques SVG + révélation par palier
-    hud.js               en-tête, tiroir d'améliorations
-    onboarding.js        3 indices contextuels maximum
-    welcomeBack.js        écran de retour honnête (durée, gain, plafond, paliers traversés)
-    format.js             formatage nombres/durées
+    scene.js           SVG puits/stockage/citerne/travailleur, animation par phase
+    hud.js               en-tête, tiroir à onglets (chaîne / atouts)
+    onboarding.js         tutoriel contextuel, une fois par mécanique
+    welcomeBack.js         écran de retour honnête
+    prestige.js             écran de Renaissance (perdu/conservé/gagné)
+    format.js                formatage nombres/durées
   audio/audio.js       nappe instrumentale calme (WebAudio pur)
-  telemetry.js          instrumentation locale (sessions, paliers, retours)
+  telemetry.js          instrumentation locale (sessions, achats, saturations, prestiges)
   save.js                sauvegarde/chargement localStorage
-  main.js                 assemblage, boucle principale, interactions
-tests/                  suite node:test (production, achats, sauvegarde,
-                         hors-ligne + plafonds, migrations)
-scripts/simulate-progression.mjs
-                         simulation de plusieurs profils de jeu réalistes
-                         (sessions + fermeture de l'app entre deux), pour
-                         mesurer le temps réel jusqu'à chaque palier
+  main.js                 assemblage, boucle principale, cycle de vie mobile
+tests/                  suite node:test (économie, achats, méta, sauvegarde, migrations)
+scripts/
+  simulate-map1.mjs        simulations économiques requises (durée de map, goulots,
+                            fenêtres hors-ligne, timing du prestige, choix d'atouts)
+  check-mobile-resume.mjs  non-régression Playwright : reprise mobile, responsive,
+                            idempotence du crédit hors-ligne
 .github/workflows/deploy.yml
-                         tests + build + déploiement GitHub Pages
+                         tests + build + test:mobile + déploiement GitHub Pages
 ```
 
 ## Développement local
@@ -85,21 +98,29 @@ terminal, depuis le navigateur du téléphone connecté au même Wi-Fi.
 npm test
 ```
 
-Suite `node:test` (aucune dépendance externe) : production et calcul du
-taux, tap, achats (verrouillé / trop cher / accepté / niveau maximum),
-amélioration globale unique, détection des paliers traversés, calcul et
-plafond du crédit hors-ligne (y compris survie à une absence de 48 à 72h),
-sauvegarde/chargement, reprise après rechargement, rejet propre d'une
-sauvegarde corrompue ou d'une version future inconnue.
+Suite `node:test` (aucune dépendance externe, 37 tests) : production,
+goulots d'étranglement, achats (verrouillé / trop cher / accepté / niveau
+maximum), Perles/atouts/Renaissance, calcul et plafond du crédit hors-ligne,
+horloge anormale, cycles longs sans dérive, sauvegarde/migration (y compris
+champs manquants).
 
 ```bash
-npm run simulate
+npm run test:mobile
 ```
 
-Rejoue 4 profils de jeu réalistes (léger, modéré, assidu, onglet laissé
-ouvert sans jamais rien acheter) et écrit
-`docs/haven-v0-simulation-results.json` — les chiffres du rapport V0 viennent
-de cette simulation, jamais d'une estimation à la main.
+Playwright headless (buildé + servi via `vite preview`) : reprise après un
+cycle suspend/resume simulé, absence de débordement horizontal à 5 largeurs
+portrait, idempotence du crédit hors-ligne face à des signaux de reprise
+redondants. Câblé dans la CI après le build.
+
+```bash
+npm run simulate           # V0 : profils de jeu réalistes (conservé)
+node scripts/simulate-map1.mjs   # V1 : durée de map, goulots, offline, prestige, atouts
+```
+
+Résultats écrits dans `docs/haven-v0-simulation-results.json` et
+`docs/haven-v1-simulation-results.json` — les chiffres des rapports viennent
+de ces simulations, jamais d'une estimation à la main.
 
 ## Build de production
 
@@ -121,3 +142,10 @@ URL stable une fois activé : `https://<owner>.github.io/haven-v0/`.
 téléphone (n'importe quel Wi-Fi ou réseau mobile, aucun ordinateur requis),
 puis « Ajouter à l'écran d'accueil » pour l'installer comme une app (PWA).
 La sauvegarde reste locale à l'appareil.
+
+## Rapports
+
+- `docs/HAVEN_V0_Rapport_Technique_Officiel.pdf` — bilan de la V0.
+- `docs/HAVEN_V1_Rapport_Technique_Officiel.pdf` — bilan de cette V1 majeure :
+  diagnostic des bugs mobiles, architecture, simulations économiques,
+  matrice de tests, limites connues, recommandations V2.

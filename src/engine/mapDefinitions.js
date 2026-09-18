@@ -105,8 +105,12 @@ export const WATER_MAP = {
   },
   // Repères de progression (litres cumulés livrés par cette map) — à
   // calibrer par simulation, voir scripts/simulate-map1.mjs et le rapport.
-  nextMapUnlockLitersShipped: 3_000,
-  mapCompleteLitersShipped: 6_000,
+  // Première valeur testée (3 000 / 6 000) : la production hors-ligne
+  // capped suffisait à elle seule à finir la map en quelques minutes de
+  // jeu actif réel — élargi d'un facteur ~20 pour que la boucle d'achats
+  // actifs reste le moteur principal de la progression.
+  nextMapUnlockLitersShipped: 60_000,
+  mapCompleteLitersShipped: 120_000,
 };
 
 export const MAP_DEFINITIONS = { water: WATER_MAP };

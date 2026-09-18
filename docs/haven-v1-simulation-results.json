@@ -1,0 +1,98 @@
+{
+  "profileResults": [
+    {
+      "name": "Léger : 2 sessions/jour de 1 min",
+      "firstUpgradeAt": {
+        "bucket": 43201000,
+        "movement": 43201000,
+        "winch": 43201000,
+        "well": 43201000,
+        "buffer": 43201000,
+        "transportCapacity": 43201000,
+        "transportFrequency": 43201000,
+        "globalProductivity": 43201000
+      },
+      "mapCompleteAt": 302400000,
+      "activeMsAtMapComplete": 420000,
+      "prestigeAvailableAt": 86400000,
+      "finalMoney": 255733.42182280234
+    },
+    {
+      "name": "Modéré : 3 sessions/jour de 3 min",
+      "firstUpgradeAt": {
+        "bucket": 120000,
+        "movement": 180000,
+        "winch": 28801000,
+        "well": 28801000,
+        "buffer": 28801000,
+        "transportCapacity": 28801000,
+        "transportFrequency": 28801000,
+        "globalProductivity": 28801000
+      },
+      "mapCompleteAt": 172800000,
+      "activeMsAtMapComplete": 1080000,
+      "prestigeAvailableAt": 57600000,
+      "finalMoney": 229168.1621014528
+    },
+    {
+      "name": "Assidu : 5 sessions/jour de 5 min",
+      "firstUpgradeAt": {
+        "bucket": 120000,
+        "movement": 180000,
+        "winch": 240000,
+        "well": 300000,
+        "buffer": 17281000,
+        "transportCapacity": 17281000,
+        "transportFrequency": 17281000,
+        "globalProductivity": 17281000
+      },
+      "mapCompleteAt": 103680000,
+      "activeMsAtMapComplete": 1800000,
+      "prestigeAvailableAt": 34560000,
+      "finalMoney": 236600.14050525145
+    }
+  ],
+  "bottleneck": {
+    "sawSaturation": true,
+    "recovered": true,
+    "litersShippedBeforeFix": 96
+  },
+  "offlineWindows": [
+    {
+      "durationMs": 900000,
+      "litersShipped": 84.90566037735849,
+      "moneyEarned": 169.81132075471697
+    },
+    {
+      "durationMs": 3600000,
+      "litersShipped": 339.62264150943395,
+      "moneyEarned": 679.2452830188679
+    },
+    {
+      "durationMs": 14400000,
+      "litersShipped": 1358.4905660377358,
+      "moneyEarned": 2716.9811320754716
+    },
+    {
+      "durationMs": 28800000,
+      "litersShipped": 2716.9811320754716,
+      "moneyEarned": 5433.962264150943
+    },
+    {
+      "durationMs": 86400000,
+      "litersShipped": 8150.943396226415,
+      "moneyEarned": 16301.88679245283
+    }
+  ],
+  "prestige": {
+    "firstRunMapCompleteAt": 89152000,
+    "timeToFirstPrestigeAvailable": 5498000,
+    "perlesEarned": 100,
+    "secondRunMapCompleteAt": 66178000,
+    "speedupRatio": 1.347154643537127
+  },
+  "perksChoice": {
+    "costsVary": true,
+    "perkCount": 8
+  }
+}

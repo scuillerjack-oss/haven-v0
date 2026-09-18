@@ -8,8 +8,14 @@ export function createMapState() {
       movementLevel: 1,
       winchLevel: 1,
       wellLevel: 1,
-      cycleProgressMs: 0,
-      paused: false,
+      // "outbound" = prepare..walkToStorage (jusqu'au point de livraison
+      // inclus), "return" = pour + walkBack. Séparés explicitement (V2) pour
+      // que la pause en cas de stockage plein tombe pile au bon endroit
+      // visuel (au stockage, seau plein), jamais après un retour à vide déjà
+      // animé comme s'il avait réussi.
+      stage: "outbound",
+      stageProgressMs: 0,
+      awaitingRoom: false,
     },
     buffer: { level: 1, currentLiters: 0 },
     transport: { capacityLevel: 1, frequencyLevel: 1, timerMs: 0 },

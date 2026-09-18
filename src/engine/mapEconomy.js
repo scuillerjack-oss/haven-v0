@@ -46,6 +46,27 @@ export function producerRatePerMs(mapState, mapDef, modifiers = NEUTRAL_MODIFIER
   return producerBucketLiters(mapState, mapDef, modifiers) / producerCycleMs(mapState, mapDef, modifiers);
 }
 
+// Le trajet se coupe en deux étapes : "outbound" (prepare -> ... ->
+// walkToStorage, jusqu'au point de livraison inclus) et "return" (pour +
+// walkBack). La livraison est tentée exactement à la frontière entre les
+// deux — jamais après un retour déjà animé comme si elle avait réussi.
+const STAGE_BOUNDARY_KEY = "pour";
+
+function stagePhaseKeys(mapDef, stage) {
+  const keys = Object.keys(mapDef.phases);
+  const idx = keys.indexOf(STAGE_BOUNDARY_KEY);
+  return stage === "outbound" ? keys.slice(0, idx) : keys.slice(idx);
+}
+
+export function stageDurations(mapState, mapDef, modifiers = NEUTRAL_MODIFIERS, stage = "outbound") {
+  const keys = new Set(stagePhaseKeys(mapDef, stage));
+  return producerPhaseDurations(mapState, mapDef, modifiers).filter((p) => keys.has(p.key));
+}
+
+export function stageTotalMs(mapState, mapDef, modifiers = NEUTRAL_MODIFIERS, stage = "outbound") {
+  return stageDurations(mapState, mapDef, modifiers, stage).reduce((sum, p) => sum + p.durationMs, 0);
+}
+
 export function bufferCapacity(mapState, mapDef, modifiers = NEUTRAL_MODIFIERS) {
   const entry = mapDef.bufferUpgrades.levels.find((l) => l.level === mapState.buffer.level);
   const base = entry ? entry.capacity : 50;
@@ -72,35 +93,55 @@ export function transportThroughputPerMs(mapState, mapDef, modifiers = NEUTRAL_M
   return transportCapacity(mapState, mapDef) / transportIntervalMs(mapState, mapDef, modifiers);
 }
 
-// Fait avancer le cycle du travailleur de deltaMs. S'arrête (paused) une
-// fois le seau prêt si le stockage n'a plus de place — l'inefficacité
-// devient une animation, jamais un blocage du jeu.
+// Fait avancer le travailleur de deltaMs à travers son cycle en deux
+// étapes. La livraison (dépôt dans le stockage) est tentée exactement à la
+// fin de l'étape "outbound" — au moment où le personnage arrive au
+// stockage, seau plein. Si la place manque, il reste bloqué PILE à cet
+// endroit (awaitingRoom) au lieu de continuer une animation de retour qui
+// mentirait sur ce qui s'est réellement passé. L'inefficacité devient une
+// animation à l'endroit exact où elle a lieu, jamais un blocage du jeu.
 function tickProducer(mapState, mapDef, deltaMs, modifiers) {
   const producer = mapState.producer;
-  const cycleMs = producerCycleMs(mapState, mapDef, modifiers);
   const bucketLiters = producerBucketLiters(mapState, mapDef, modifiers);
   const capacity = bufferCapacity(mapState, mapDef, modifiers);
+  let remaining = deltaMs;
 
-  if (producer.paused) {
-    const room = capacity - mapState.buffer.currentLiters;
-    if (room >= bucketLiters) {
-      mapState.buffer.currentLiters += bucketLiters;
-      producer.paused = false;
-      producer.cycleProgressMs = 0;
+  while (remaining > 0) {
+    if (producer.awaitingRoom) {
+      const room = capacity - mapState.buffer.currentLiters;
+      if (room >= bucketLiters) {
+        mapState.buffer.currentLiters += bucketLiters;
+        producer.awaitingRoom = false;
+        producer.stage = "return";
+        producer.stageProgressMs = 0;
+      } else {
+        return; // toujours bloqué au point de livraison, rien de plus ce tick.
+      }
     }
-    return;
-  }
 
-  producer.cycleProgressMs += deltaMs;
-  while (producer.cycleProgressMs >= cycleMs) {
-    const room = capacity - mapState.buffer.currentLiters;
-    if (room >= bucketLiters) {
-      mapState.buffer.currentLiters += bucketLiters;
-      producer.cycleProgressMs -= cycleMs;
-    } else {
-      producer.paused = true;
-      producer.cycleProgressMs = cycleMs;
-      break;
+    const stageMs = stageTotalMs(mapState, mapDef, modifiers, producer.stage);
+    if (stageMs <= 0) break; // garde-fou défensif, ne devrait jamais arriver en pratique.
+
+    const step = Math.min(remaining, stageMs - producer.stageProgressMs);
+    producer.stageProgressMs += step;
+    remaining -= step;
+
+    if (producer.stageProgressMs >= stageMs) {
+      if (producer.stage === "outbound") {
+        const room = capacity - mapState.buffer.currentLiters;
+        if (room >= bucketLiters) {
+          mapState.buffer.currentLiters += bucketLiters;
+          producer.stage = "return";
+          producer.stageProgressMs = 0;
+        } else {
+          producer.awaitingRoom = true;
+          producer.stageProgressMs = stageMs; // reste pile au point de livraison.
+          return;
+        }
+      } else {
+        producer.stage = "outbound";
+        producer.stageProgressMs = 0;
+      }
     }
   }
 }
@@ -163,10 +204,11 @@ export function applyMapOfflineProgress(mapState, mapDef, elapsedMs, modifiers =
   const capacity = bufferCapacity(mapState, mapDef, modifiers);
   if (result.transportIsBottleneck) {
     mapState.buffer.currentLiters = capacity;
-    mapState.producer.paused = true;
-    mapState.producer.cycleProgressMs = producerCycleMs(mapState, mapDef, modifiers);
+    mapState.producer.awaitingRoom = true;
+    mapState.producer.stage = "outbound";
+    mapState.producer.stageProgressMs = stageTotalMs(mapState, mapDef, modifiers, "outbound");
   } else {
-    mapState.producer.paused = false;
+    mapState.producer.awaitingRoom = false;
   }
   mapState.transport.timerMs = 0;
   return result;
@@ -176,12 +218,13 @@ export function applyMapOfflineProgress(mapState, mapDef, elapsedMs, modifiers =
 // téléportation brutale entre postes : l'UI lit cette phase à chaque
 // image et positionne le personnage en conséquence).
 export function currentProducerPhase(mapState, mapDef, modifiers = NEUTRAL_MODIFIERS) {
-  if (mapState.producer.paused) {
+  const producer = mapState.producer;
+  if (producer.awaitingRoom) {
     return { key: "waitingForRoom", progress: 1, paused: true };
   }
-  const durations = producerPhaseDurations(mapState, mapDef, modifiers);
+  const durations = stageDurations(mapState, mapDef, modifiers, producer.stage);
   let acc = 0;
-  const progressMs = mapState.producer.cycleProgressMs;
+  const progressMs = producer.stageProgressMs;
   for (const phase of durations) {
     if (progressMs < acc + phase.durationMs) {
       return { key: phase.key, progress: (progressMs - acc) / phase.durationMs, paused: false };
@@ -195,7 +238,7 @@ export function currentProducerPhase(mapState, mapDef, modifiers = NEUTRAL_MODIF
 // Pour l'UI : quel maillon limite le débit en ce moment, en langage
 // compréhensible sans ouvrir un écran statistique (critère UX section 5.2).
 export function bottleneckKind(mapState, mapDef, modifiers = NEUTRAL_MODIFIERS) {
-  if (mapState.producer.paused) return "storageFull";
+  if (mapState.producer.awaitingRoom) return "storageFull";
   const producerRate = producerRatePerMs(mapState, mapDef, modifiers);
   const transportRate = transportThroughputPerMs(mapState, mapDef, modifiers);
   if (producerRate >= transportRate * 0.9) return "transport";

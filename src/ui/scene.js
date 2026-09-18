@@ -44,16 +44,32 @@ export function sceneMarkup() {
           <rect x="-8" y="-46" width="16" height="12" rx="2" class="worker-bucket" />
         </g>
         <circle cx="0" cy="-52" r="8" class="worker-head" />
-        <line x1="0" y1="-44" x2="0" y2="-20" class="worker-body" />
-        <line x1="0" y1="-38" x2="-9" y2="-28" class="worker-arm worker-arm-l" />
-        <line x1="0" y1="-38" x2="9" y2="-28" class="worker-arm worker-arm-r" />
-        <line x1="0" y1="-20" x2="-7" y2="0" class="worker-leg worker-leg-l" />
-        <line x1="0" y1="-20" x2="7" y2="0" class="worker-leg worker-leg-r" />
+        <line x1="0" y1="-44" x2="0" y2="-20" class="worker-torso" />
+
+        <!-- Hanche et épaule portent SEULES le placement statique (attribut
+             transform) ; les groupes enfants ne reçoivent que la rotation
+             CSS, avec un transform-origin explicite à leur propre (0,0) —
+             qui coïncide donc exactement avec l'articulation. Mélanger un
+             attribut transform et une transform CSS sur LE MÊME élément
+             fait que CSS écrase l'attribut (au lieu de les combiner) ; les
+             jambes semblaient "détachées" du corps précisément parce que la
+             rotation pivotait sur le centre de la boîte englobante de la
+             ligne plutôt que sur la hanche. -->
+        <g class="worker-shoulder" transform="translate(0, -38)">
+          <g class="worker-arm worker-arm-l"><line x1="0" y1="0" x2="-9" y2="10" class="worker-limb" /></g>
+          <g class="worker-arm worker-arm-r"><line x1="0" y1="0" x2="9" y2="10" class="worker-limb" /></g>
+        </g>
+        <g class="worker-hip" transform="translate(0, -20)">
+          <g class="worker-leg worker-leg-l"><line x1="0" y1="0" x2="-7" y2="20" class="worker-limb" /></g>
+          <g class="worker-leg worker-leg-r"><line x1="0" y1="0" x2="7" y2="20" class="worker-limb" /></g>
+        </g>
       </g>
 
-      <g class="waiting-indicator" transform="translate(${STORAGE_X - 20}, 320)">
-        <circle r="10" class="waiting-bubble" />
-        <text x="0" y="4" class="waiting-mark" text-anchor="middle">!</text>
+      <g class="waiting-indicator" transform="translate(${STORAGE_X}, 315)">
+        <g class="waiting-indicator-bob">
+          <circle r="10" class="waiting-bubble" />
+          <text x="0" y="4" class="waiting-mark" text-anchor="middle">!</text>
+        </g>
       </g>
     </svg>
   `;
@@ -68,7 +84,11 @@ const PHASE_TO_WORKER_X = {
   walkToStorage: null, // interpolé
   pour: STORAGE_X,
   walkBack: null, // interpolé
-  waitingForRoom: STORAGE_X - 20,
+  // Le nouveau moteur (V2) bloque le travailleur exactement au point de
+  // livraison quand le stockage est plein : la position affichée doit
+  // rester STORAGE_X, jamais un autre point (sinon on retombe dans la
+  // téléportation que ce correctif corrige).
+  waitingForRoom: STORAGE_X,
 };
 
 function lerp(a, b, t) {
@@ -100,8 +120,6 @@ export function updateSceneAnimation(root, { phase, bufferRatio, truckRatio, isS
   const worker = root.querySelector(".worker");
   const bucketArm = root.querySelector(".worker-bucket-arm");
   const bucket = root.querySelector(".worker-bucket");
-  const legL = root.querySelector(".worker-leg-l");
-  const legR = root.querySelector(".worker-leg-r");
   const waitingIndicator = root.querySelector(".waiting-indicator");
   const storageFill = root.querySelector(".storage-fill");
   const truck = root.querySelector(".truck");
@@ -112,9 +130,11 @@ export function updateSceneAnimation(root, { phase, bufferRatio, truckRatio, isS
   bucket.classList.toggle("worker-bucket-full", isCarryingWater(phase));
 
   waitingIndicator.classList.toggle("is-visible", phase.paused);
+  // Une seule source de vérité pour marche/attente : les classes CSS
+  // conditionnent entièrement quelles animations tournent (voir style.css),
+  // pas de bascule manuelle d'animation-play-state redondante ici.
   worker.classList.toggle("is-walking", Boolean(walking));
-  legL.style.animationPlayState = walking ? "running" : "paused";
-  legR.style.animationPlayState = walking ? "running" : "paused";
+  worker.classList.toggle("is-waiting", Boolean(phase.paused));
 
   const fillHeight = Math.max(0, Math.min(1, bufferRatio)) * 116;
   storageFill.setAttribute("height", String(fillHeight));

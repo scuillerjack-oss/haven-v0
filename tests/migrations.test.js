@@ -41,6 +41,37 @@ test("une sauvegarde de la version courante avec des atouts partiellement prése
   assert.equal(result.perks.cycleSpeed, 0); // complété
 });
 
+test("migre une sauvegarde V1 (version 2, ancien modèle de cycle) vers le nouveau modèle outbound/return sans perdre la progression économique", () => {
+  const v1Save = {
+    version: 2,
+    money: 777,
+    perles: 12,
+    maps: {
+      water: {
+        producer: { bucketLevel: 3, movementLevel: 2, winchLevel: 1, wellLevel: 1, cycleProgressMs: 4200, paused: false },
+        buffer: { level: 2, currentLiters: 88 },
+        transport: { capacityLevel: 1, frequencyLevel: 1, timerMs: 500 },
+        globalProductivityLevel: 1,
+        totalLitersShipped: 999,
+      },
+    },
+  };
+  const migrated = migrateSave(v1Save);
+  assert.equal(migrated.version, SAVE_VERSION);
+  assert.equal(migrated.money, 777);
+  assert.equal(migrated.perles, 12);
+  // progression économique préservée :
+  assert.equal(migrated.maps.water.producer.bucketLevel, 3);
+  assert.equal(migrated.maps.water.buffer.currentLiters, 88);
+  assert.equal(migrated.maps.water.totalLitersShipped, 999);
+  // nouvel état d'animation, propre, jamais un champ de l'ancien modèle qui traîne :
+  assert.equal(migrated.maps.water.producer.stage, "outbound");
+  assert.equal(migrated.maps.water.producer.stageProgressMs, 0);
+  assert.equal(migrated.maps.water.producer.awaitingRoom, false);
+  assert.equal("cycleProgressMs" in migrated.maps.water.producer, false);
+  assert.equal("paused" in migrated.maps.water.producer, false);
+});
+
 test("migre une sauvegarde V0 (version 1) vers une run V1 neuve, sans planter et sans supprimer les préférences audio", () => {
   const v0Save = {
     version: 1,

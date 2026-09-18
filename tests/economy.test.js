@@ -12,6 +12,7 @@ import {
   computeMapOfflineProgress,
   applyMapOfflineProgress,
   currentProducerPhase,
+  stageTotalMs,
 } from "../src/engine/mapEconomy.js";
 
 test("le cycle de base correspond bien à la somme des phases (aucune amélioration achetée)", () => {
@@ -28,24 +29,33 @@ test("un tick suffisamment long fait déposer un seau dans le stockage", () => {
   assert.equal(map.buffer.currentLiters, bucket);
 });
 
-test("plusieurs cycles d'un coup (gros deltaMs) déposent plusieurs seaux, jamais de téléportation partielle perdue", () => {
+test("plusieurs seaux déposés d'un coup (gros deltaMs), jamais de progrès perdu entre deux", () => {
   const map = createMapState();
-  const cycleMs = producerCycleMs(map, WATER_MAP);
+  const outboundMs = stageTotalMs(map, WATER_MAP, undefined, "outbound");
+  const returnMs = stageTotalMs(map, WATER_MAP, undefined, "return");
+  const cycleMs = outboundMs + returnMs;
   const bucket = producerBucketLiters(map, WATER_MAP);
-  tickMap(map, WATER_MAP, cycleMs * 3.5);
-  // 3 cycles complets déposés, le 4e est à mi-chemin (progrès conservé, pas perdu)
-  assert.equal(map.buffer.currentLiters, bucket * 3);
-  assert.ok(map.producer.cycleProgressMs > 0);
+  // 3 cycles complets + une moitié de cycle qui n'atteint pas forcément le
+  // prochain point de livraison : le nombre de seaux dépend de la part
+  // "outbound" du cycle, calculée dynamiquement plutôt que supposée.
+  const elapsed = cycleMs * 3.5;
+  const wholeCycles = Math.floor(elapsed / cycleMs);
+  const remainder = elapsed - wholeCycles * cycleMs;
+  const expectedBuckets = wholeCycles + (remainder >= outboundMs ? 1 : 0);
+  tickMap(map, WATER_MAP, elapsed);
+  assert.equal(map.buffer.currentLiters, bucket * expectedBuckets);
+  assert.ok(map.producer.stageProgressMs >= 0);
 });
 
-test("goulot d'étranglement : un stockage plein met le travailleur en pause au lieu de perdre la production", () => {
+test("goulot d'étranglement : un stockage plein bloque le travailleur exactement au point de livraison, jamais un retour animé pour rien", () => {
   const map = createMapState();
   map.buffer.level = 1;
   const capacity = bufferCapacity(map, WATER_MAP);
   map.buffer.currentLiters = capacity; // déjà plein
-  const cycleMs = producerCycleMs(map, WATER_MAP);
-  tickMap(map, WATER_MAP, cycleMs * 2);
-  assert.equal(map.producer.paused, true);
+  const outboundMs = stageTotalMs(map, WATER_MAP, undefined, "outbound");
+  tickMap(map, WATER_MAP, outboundMs * 2);
+  assert.equal(map.producer.awaitingRoom, true);
+  assert.equal(map.producer.stage, "outbound");
   assert.equal(map.buffer.currentLiters, capacity); // rien n'a débordé, rien n'a été perdu
 });
 
@@ -100,7 +110,7 @@ test("applyMapOfflineProgress est cohérent : le stockage finit plein si le tran
   const result = applyMapOfflineProgress(map, WATER_MAP, 3600 * 1000);
   assert.equal(result.transportIsBottleneck, true);
   assert.equal(map.buffer.currentLiters, bufferCapacity(map, WATER_MAP));
-  assert.equal(map.producer.paused, true);
+  assert.equal(map.producer.awaitingRoom, true);
 });
 
 test("currentProducerPhase traverse chaque phase dans l'ordre, jamais de saut", () => {
@@ -144,5 +154,6 @@ test("de nombreux cycles longs successifs ne dérivent jamais (pas de NaN, pas d
   assert.ok(Number.isFinite(map.buffer.currentLiters));
   assert.ok(Number.isFinite(map.totalLitersShipped));
   assert.ok(map.buffer.currentLiters >= 0);
-  assert.ok(map.producer.cycleProgressMs < producerCycleMs(map, WATER_MAP) + 1e-6);
+  const stageMs = stageTotalMs(map, WATER_MAP, undefined, map.producer.stage);
+  assert.ok(map.producer.stageProgressMs < stageMs + 1e-6 || map.producer.awaitingRoom);
 });

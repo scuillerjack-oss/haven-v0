@@ -222,9 +222,8 @@ body {
 .worker-bucket {
   fill: #e7d9b8;
 }
-.worker-body,
-.worker-arm,
-.worker-leg,
+.worker-torso,
+.worker-limb,
 .worker-rope {
   stroke: #e7d9b8;
   stroke-width: 3;
@@ -240,29 +239,85 @@ body {
 .worker {
   transition: transform 0.3s linear;
 }
+
+/* Bras et jambes : le placement statique (attribut transform="translate(...)")
+   vit sur le groupe PARENT (.worker-shoulder / .worker-hip) ; le groupe qui
+   reçoit l'animation CSS (.worker-arm-*/.worker-leg-*) n'a PAS d'attribut
+   transform du tout, pour que CSS ne l'écrase pas. transform-origin: 0 0
+   coïncide alors exactement avec l'épaule/la hanche, jamais le centre de
+   la boîte englobante du trait — c'est ce qui empêchait les jambes de
+   rester attachées au corps pendant la marche. */
+.worker-arm,
+.worker-leg {
+  transform-box: view-box;
+  transform-origin: 0px 0px;
+}
+
 .worker.is-walking .worker-leg-l {
   animation: leg-swing 0.5s ease-in-out infinite;
 }
 .worker.is-walking .worker-leg-r {
   animation: leg-swing 0.5s ease-in-out infinite reverse;
 }
+.worker.is-walking .worker-arm-l {
+  animation: arm-swing 0.5s ease-in-out infinite reverse;
+}
+.worker.is-walking .worker-arm-r {
+  animation: arm-swing 0.5s ease-in-out infinite;
+}
 
 @keyframes leg-swing {
   0%,
   100% {
-    transform: rotate(-14deg);
+    transform: rotate(-16deg);
   }
   50% {
-    transform: rotate(14deg);
+    transform: rotate(16deg);
+  }
+}
+
+@keyframes arm-swing {
+  0%,
+  100% {
+    transform: rotate(12deg);
+  }
+  50% {
+    transform: rotate(-12deg);
+  }
+}
+
+/* Animation d'attente : jamais un membre figé en plein pas — dès que la
+   marche s'arrête (classe is-walking retirée), les bras/jambes perdent
+   entièrement leur animation et reviennent à la pose neutre (aucune
+   transform = alignés le long du corps). Une légère respiration sur la
+   tête signale "en attente" sans jamais toucher aux membres. */
+.worker.is-waiting .worker-head {
+  animation: idle-bob 1.8s ease-in-out infinite;
+}
+
+@keyframes idle-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
   }
 }
 
 .waiting-indicator {
+  /* Le positionnement (attribut transform="translate(...)") vit ICI ; le
+     même piège que les jambes existait aussi sur cette bulle — l'animation
+     "bob" écrasait sa position statique et l'envoyait à l'origine du SVG.
+     L'opacité seule ne pose aucun problème (ce n'est pas transform), le
+     rebond est déplacé sur l'enfant .waiting-indicator-bob ci-dessous. */
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 .waiting-indicator.is-visible {
   opacity: 1;
+}
+.waiting-indicator.is-visible .waiting-indicator-bob {
   animation: bob 1.4s ease-in-out infinite;
 }
 .waiting-bubble {

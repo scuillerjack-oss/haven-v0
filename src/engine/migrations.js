@@ -28,8 +28,32 @@ function migrateV1ToV2(oldState) {
   return fresh;
 }
 
+// V2 sépare le cycle du travailleur en deux étapes (outbound/return, voir
+// mapEconomy.js) pour que la pause en cas de stockage plein tombe pile au
+// bon endroit visuel — l'ancien modèle (un seul compteur cycleProgressMs +
+// un booléen paused) est remplacé. La progression économique (argent,
+// stockage, niveaux, Perles, atouts...) ne change pas ; seul l'état
+// transitoire d'animation du travailleur est réinitialisé proprement.
+function migrateV2ToV3(oldState) {
+  const next = { ...oldState, version: 3 };
+  if (next.maps && typeof next.maps === "object") {
+    const maps = {};
+    for (const [mapId, mapState] of Object.entries(next.maps)) {
+      if (mapState && typeof mapState === "object" && mapState.producer) {
+        const { cycleProgressMs, paused, ...restProducer } = mapState.producer;
+        maps[mapId] = { ...mapState, producer: { ...restProducer, stage: "outbound", stageProgressMs: 0, awaitingRoom: false } };
+      } else {
+        maps[mapId] = mapState;
+      }
+    }
+    next.maps = maps;
+  }
+  return next;
+}
+
 export const migrations = {
   1: migrateV1ToV2,
+  2: migrateV2ToV3,
 };
 
 // Filet de sécurité contre les champs absents (section 22 : une
@@ -46,7 +70,14 @@ function fillMissingDefaults(state) {
 
   const maps = state.maps && typeof state.maps === "object" ? { ...state.maps } : fresh.maps;
   for (const mapId of Object.keys(fresh.maps)) {
-    if (!maps[mapId] || typeof maps[mapId] !== "object") maps[mapId] = createMapState();
+    if (!maps[mapId] || typeof maps[mapId] !== "object") {
+      maps[mapId] = createMapState();
+      continue;
+    }
+    const producer = maps[mapId].producer;
+    if (!producer || typeof producer.stage !== "string" || typeof producer.stageProgressMs !== "number") {
+      maps[mapId] = { ...maps[mapId], producer: { ...createMapState().producer, ...(producer ?? {}) } };
+    }
   }
 
   return {

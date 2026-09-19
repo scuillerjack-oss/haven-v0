@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE VISUEL HAVEN — épreuve de direction artistique (PAS une V6).
+  Isolé de l'application réelle : n'importe QUE la logique du moteur
+  (src/engine/*, jamais src/ui/scene.js ni style.css) pour que la boucle
+  économique reste authentique, mais toute la couche de rendu est neuve.
+  V5 (main) reste intact et non modifié par ce fichier.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HAVEN — prototype visuel</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: #14261d; color: #eef2ee;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow-x: hidden;
+  }
+  .stage-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .scene {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 400 / 560;
+    overflow: hidden;
+    background: #5fa8d8;
+  }
+  .layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  .bg-img { object-fit: cover; object-position: center top; }
+  .ground-img { position: absolute; left: 0; bottom: 0; width: 100%; height: 36%; object-fit: cover; object-position: center top; }
+  .fg-img { position: absolute; left: 0; bottom: 0; width: 100%; height: 9%; object-fit: cover; object-position: center top; z-index: 5; pointer-events: none; }
+
+  .sprite {
+    position: absolute;
+    transform-origin: 50% 100%;
+    will-change: transform;
+  }
+  #well-sprite { width: 27%; left: 4%; bottom: 24%; }
+  #barrel-sprite { width: 21%; left: 42%; bottom: 20%; }
+  #truck-sprite { width: 46%; bottom: 15%; left: 0; }
+  #farmer-sprite { width: 14%; bottom: 20%; left: 0; }
+
+  .hud {
+    position: absolute; top: 10px; left: 10px; right: 10px; z-index: 10;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; background: rgba(10, 18, 14, 0.55); border-radius: 999px;
+    padding: 6px 14px; backdrop-filter: blur(2px);
+  }
+  .caption {
+    position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 10;
+    background: rgba(10, 18, 14, 0.6); border-radius: 10px; padding: 8px 12px;
+    font-size: 12px; line-height: 1.4;
+  }
+  .note {
+    max-width: 900px; margin: 14px auto; padding: 0 12px; font-size: 13px; color: #b9c7bd;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage-wrap">
+  <div class="scene" id="scene">
+    <img class="layer bg-img" src="sprites/background.png" alt="" />
+    <img class="ground-img" src="sprites/ground.png" alt="" />
+    <img class="sprite" id="well-sprite" src="sprites/well.png" alt="" />
+    <img class="sprite" id="barrel-sprite" src="sprites/barrel.png" alt="" />
+    <img class="sprite" id="truck-sprite" src="sprites/truck.png" alt="" />
+    <img class="sprite" id="farmer-sprite" src="sprites/farmer-walk.png" alt="" />
+    <img class="fg-img" src="sprites/foreground.png" alt="" />
+    <div class="hud"><span id="money">0</span><span id="bottleneck-label">—</span></div>
+    <div class="caption" id="caption">—</div>
+  </div>
+</div>
+<p class="note">Prototype visuel isolé (branche <code>visual-prototype</code>) — pas HAVEN V6. Boucle économique réelle (mêmes fonctions que le jeu), rendu entièrement nouveau.</p>
+
+<script type="module">
+import { createInitialState } from "../src/engine/state.js";
+import { applyTick } from "../src/engine/simulation.js";
+import { getMapDefinition } from "../src/engine/mapDefinitions.js";
+import {
+  currentProducerPhase,
+  bufferCapacity,
+  transportIntervalMs,
+  bottleneckKind,
+} from "../src/engine/mapEconomy.js";
+import { formatNumber } from "../src/ui/format.js";
+
+const game = createInitialState(0);
+// Niveaux de départ modestes mais non nuls : la boucle est visible tout de
+// suite (le camion part/revient, le stockage se remplit) sans attendre.
+game.maps.water.producer.bucketLevel = 3;
+game.maps.water.producer.movementLevel = 2;
+game.maps.water.producer.winchLevel = 2;
+game.maps.water.producer.wellLevel = 2;
+game.maps.water.buffer.level = 2;
+game.maps.water.transport.capacityLevel = 2;
+game.maps.water.transport.frequencyLevel = 1;
+
+const mapDef = getMapDefinition("water");
+const mapState = game.maps.water;
+
+const els = {
+  well: document.getElementById("well-sprite"),
+  barrel: document.getElementById("barrel-sprite"),
+  truck: document.getElementById("truck-sprite"),
+  farmer: document.getElementById("farmer-sprite"),
+  money: document.getElementById("money"),
+  bottleneck: document.getElementById("bottleneck-label"),
+  caption: document.getElementById("caption"),
+};
+
+// Repères de mise en scène, en % de la largeur de la scène (cohérent avec
+// le CSS ci-dessus) — le puits à gauche, la réserve au centre, le camion
+// arrimé à droite, exactement la même logique de mise en scène que V5.
+const HOME_X = 27, WELL_STAND_X = 15, STORAGE_STAND_X = 40;
+const TRUCK_DOCK_X = 66, TRUCK_HIDDEN_X = 108;
+
+let lastTickTime = Date.now();
+const TICK_MS = 200;
+let departStartAt = null;
+setInterval(() => {
+  const now = Date.now();
+  const result = applyTick(game, now - lastTickTime);
+  lastTickTime = now;
+  const shipped = result.perMap?.water?.litersShipped ?? 0;
+  if (shipped > 0) departStartAt = now;
+}, TICK_MS);
+
+const TRUCK_DEPART_MS = 1100;
+let lastFacing = "left";
+const LEFT_PHASES = new Set(["walkToWell", "lowerBucket", "wellFill", "raiseBucket", "walkBack"]);
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function workerX(phase) {
+  if (phase.key === "walkToWell") return lerp(HOME_X, WELL_STAND_X, phase.progress);
+  if (phase.key === "walkToStorage") return lerp(WELL_STAND_X, STORAGE_STAND_X, phase.progress);
+  if (phase.key === "walkBack") return lerp(STORAGE_STAND_X, HOME_X, phase.progress);
+  if (phase.key === "lowerBucket" || phase.key === "wellFill" || phase.key === "raiseBucket") return WELL_STAND_X;
+  if (phase.key === "pour" || phase.key === "waitingForRoom") return STORAGE_STAND_X;
+  return HOME_X;
+}
+
+function farmerSprite(phase) {
+  if (phase.key === "lowerBucket" || phase.key === "wellFill" || phase.key === "raiseBucket") return "sprites/farmer-well.png";
+  if (phase.key === "pour") return "sprites/farmer-pour.png";
+  return "sprites/farmer-walk.png";
+}
+
+// V5 nous a appris cette leçon à la dure (voir son rapport, section 2) :
+// jamais une propriété qui force un recalcul de mise en page à chaque
+// image. `left`/`vw` en dépendent tous les deux (vw en plus se réfère à la
+// fenêtre, pas au conteneur — un vrai bug du premier essai, invisible
+// seulement parce que la fenêtre de test faisait pile la même largeur que
+// la scène). On mesure la largeur réelle du conteneur une fois (+ resize)
+// et on n'anime plus que `transform: translateX(px)`, pur compositeur.
+const sceneEl = document.getElementById("scene");
+let sceneWidthPx = sceneEl.getBoundingClientRect().width;
+window.addEventListener("resize", () => { sceneWidthPx = sceneEl.getBoundingClientRect().width; });
+
+let lastSpriteSrc = "";
+const BOTTLENECK_TEXT = {
+  storageFull: "Stockage plein : le camion ne suit plus.",
+  transport: "Le transport limite le débit : la citerne est le maillon le plus juste.",
+  production: "La production limite le débit.",
+};
+
+function render() {
+  const modifiers = { productionMultiplier: 1, storageMultiplier: 1, logisticsMultiplier: 1 };
+  const extraMs = Date.now() - lastTickTime;
+  const phase = currentProducerPhase(mapState, mapDef, modifiers, extraMs);
+
+  const x = workerX(phase);
+  lastFacing = LEFT_PHASES.has(phase.key) ? "left" : "right";
+  const xPx = (x / 100) * sceneWidthPx;
+  const walking = phase.key === "walkToWell" || phase.key === "walkToStorage" || phase.key === "walkBack";
+  // Rebond de marche replié dans LE MÊME transform (jamais une animation
+  // CSS séparée sur la même propriété : l'une écraserait l'autre) — une
+  // sinusoïde sur l'horloge réelle, purement translateY, jamais une
+  // propriété de mise en page.
+  const bobPx = walking ? Math.abs(Math.sin(Date.now() / 230)) * -4 : 0;
+  els.farmer.style.transform =
+    `translateY(${bobPx}px) translateX(${xPx}px) translateX(-50%) scaleX(${lastFacing === "left" ? -1 : 1})`;
+
+  const spriteSrc = farmerSprite(phase);
+  if (spriteSrc !== lastSpriteSrc) {
+    els.farmer.src = spriteSrc;
+    lastSpriteSrc = spriteSrc;
+  }
+
+  const capacity = bufferCapacity(mapState, mapDef, modifiers);
+  const bufferRatio = capacity > 0 ? mapState.buffer.currentLiters / capacity : 0;
+  els.barrel.style.filter = `saturate(${0.7 + bufferRatio * 0.5})`;
+
+  const intervalMs = transportIntervalMs(mapState, mapDef, modifiers);
+  const truckRatio = intervalMs > 0 ? mapState.transport.timerMs / intervalMs : 0;
+  const now = Date.now();
+  const departingNow = departStartAt !== null && now - departStartAt < TRUCK_DEPART_MS;
+  let truckX;
+  if (departingNow) {
+    const t = (now - departStartAt) / TRUCK_DEPART_MS;
+    truckX = lerp(TRUCK_DOCK_X, TRUCK_HIDDEN_X, t);
+  } else {
+    departStartAt = null;
+    truckX = truckRatio >= 0.7 ? lerp(TRUCK_HIDDEN_X, TRUCK_DOCK_X, Math.min(1, (truckRatio - 0.7) / 0.3)) : TRUCK_HIDDEN_X;
+  }
+  const truckXPx = (truckX / 100) * sceneWidthPx;
+  els.truck.style.transform = `translateX(${truckXPx}px) translateX(-50%)`;
+
+  els.money.textContent = `${formatNumber(game.money)} Argent`;
+  const kind = bottleneckKind(mapState, mapDef, modifiers);
+  els.bottleneck.textContent = BOTTLENECK_TEXT[kind];
+  els.caption.textContent = `Phase : ${phase.key}${phase.paused ? " (en attente)" : ""}`;
+
+  requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

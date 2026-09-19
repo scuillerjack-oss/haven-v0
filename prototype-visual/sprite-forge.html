@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<!--
+  Forge de sprites — prototype de direction artistique HAVEN (mission
+  "epreuve de direction artistique", jamais V6). Chaque sprite est peint
+  procéduralement en Canvas 2D (dégradés + ombres portées + petit bruit de
+  texture), jamais tracé depuis l'image de référence ni un asset externe :
+  100% original, généré par du code. Le Canvas 2D donne un vocabulaire que
+  le SVG plat n'a pas facilement : dégradés multi-stops réalistes,
+  shadowBlur pour des ombres douces, composition en calques avec
+  globalCompositeOperation pour les reflets/ombrages.
+
+  Usage : ouvert en headless Chromium (Playwright), chaque <canvas> est
+  exporté en PNG via toDataURL() — jamais une capture d'écran de la page
+  (qui inclurait le fond), pour préserver la transparence alpha réelle.
+-->
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  body { margin: 0; background: #2a2a2a; }
+  canvas { display: block; margin: 4px; background: repeating-conic-gradient(#3a3a3a 0% 25%, #303030 0% 50%) 50% / 16px 16px; }
+</style>
+</head>
+<body>
+
+<script>
+// ---------------------------------------------------------------------
+// Utilitaires communs
+// ---------------------------------------------------------------------
+function mkCanvas(id, w, h) {
+  const c = document.createElement("canvas");
+  c.id = id;
+  c.width = w;
+  c.height = h;
+  document.body.appendChild(c);
+  return c;
+}
+
+function softShadow(ctx, cx, cy, rx, ry, alpha = 0.35) {
+  ctx.save();
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
+  g.addColorStop(0, `rgba(20,15,10,${alpha})`);
+  g.addColorStop(1, `rgba(20,15,10,0)`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Bruit fin (grain de matière) : quelques centaines de points semi-
+// transparents, jamais un vrai bruit de Perlin (inutile ici) — juste assez
+// pour casser un aplat parfaitement uniforme façon vecteur.
+function grain(ctx, x, y, w, h, count, colorLight, colorDark) {
+  ctx.save();
+  for (let i = 0; i < count; i++) {
+    const px = x + Math.random() * w;
+    const py = y + Math.random() * h;
+    const r = 0.5 + Math.random() * 1.3;
+    ctx.fillStyle = Math.random() > 0.5 ? colorLight : colorDark;
+    ctx.globalAlpha = 0.08 + Math.random() * 0.10;
+    ctx.beginPath();
+    ctx.ellipse(px, py, r, r * 0.6, Math.random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function roundedRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// ---------------------------------------------------------------------
+// FERMIER — vue de PROFIL (jamais une figure frontale mise à plat) :
+// une seule direction est peinte (vers la DROITE), le jeu la retourne en
+// miroir pour l'autre sens — un vrai retournement de profil est correct
+// visuellement (contrairement au retournement d'une silhouette frontale
+// symétrique, qui ne change rien à l'image et donne l'effet "feuille de
+// papier" signalé par la mission). Jambe arrière PARTIELLEMENT
+// occultée + plus sombre (perspective aérienne courte) pour donner de la
+// profondeur, jamais deux jambes identiques superposées.
+// ---------------------------------------------------------------------
+// Repères anatomiques absolus (jamais des offsets relatifs improvisés à
+// plusieurs niveaux d'imbrication : cause du bug du premier essai, tête
+// flottant loin au-dessus du corps). Tout le reste du dessin se positionne
+// PAR RAPPORT à ces constantes.
+const GROUND_Y = 388;
+const HIP_Y = 220;
+const SHOULDER_Y = 108;
+const HEAD_R = 26;
+const HEAD_CENTER_Y = SHOULDER_Y - 30;
+
+function drawFarmer(ctx, pose) {
+  // pose: "walk" | "well" | "pour"
+  ctx.clearRect(0, 0, 300, 420);
+  ctx.save();
+  ctx.translate(150, 0);
+
+  softShadow(ctx, 0, GROUND_Y, 56, 13, 0.4);
+
+  let backKnee, backFoot, frontKnee, frontFoot, torsoLean, armAngle, forearmAngle, bucketTip;
+  const legMidY = HIP_Y + (GROUND_Y - HIP_Y) * 0.55;
+  if (pose === "walk") {
+    backKnee = { x: -16, y: legMidY }; backFoot = { x: -30, y: GROUND_Y };
+    frontKnee = { x: 20, y: legMidY }; frontFoot = { x: 38, y: GROUND_Y - 4 };
+    torsoLean = -6; armAngle = 24; forearmAngle = 8; bucketTip = 0;
+  } else if (pose === "well") {
+    backKnee = { x: -8, y: legMidY }; backFoot = { x: -14, y: GROUND_Y };
+    frontKnee = { x: 12, y: legMidY }; frontFoot = { x: 18, y: GROUND_Y };
+    torsoLean = 22; armAngle = -70; forearmAngle = -20; bucketTip = 0;
+  } else {
+    backKnee = { x: -8, y: legMidY }; backFoot = { x: -14, y: GROUND_Y };
+    frontKnee = { x: 12, y: legMidY }; frontFoot = { x: 18, y: GROUND_Y };
+    torsoLean = 16; armAngle = 55; forearmAngle = 70; bucketTip = 95;
+  }
+
+  function leg(hipOffsetX, knee, foot, width, colorNear, colorFar, shoeColor) {
+    ctx.save();
+    ctx.translate(hipOffsetX, HIP_Y);
+    const g = ctx.createLinearGradient(-width / 2, 0, width / 2, 0);
+    g.addColorStop(0, colorFar);
+    g.addColorStop(1, colorNear);
+    ctx.strokeStyle = g;
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(knee.x - hipOffsetX, knee.y - HIP_Y, foot.x - hipOffsetX, foot.y - HIP_Y);
+    ctx.stroke();
+    ctx.fillStyle = shoeColor;
+    ctx.beginPath();
+    ctx.ellipse(foot.x - hipOffsetX, foot.y - HIP_Y, 15, 9, foot.x > 0 ? 0.15 : -0.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // === JAMBE ARRIÈRE (en premier : plus petite, plus sombre, recule dans l'espace) ===
+  leg(-6, backKnee, backFoot, 19, "#5c4222", "#3d2c16", "#2e2010");
+
+  // === TORSE + TÊTE + BRAS : un seul groupe rigide qui penche ensemble ===
+  ctx.save();
+  ctx.translate(0, HIP_Y);
+  ctx.rotate((torsoLean * Math.PI) / 180);
+  // tout ce qui suit est en coordonnées LOCALES à ce groupe, où y=0 est la
+  // hanche et les valeurs négatives montent vers la tête.
+  const shoulderLocalY = SHOULDER_Y - HIP_Y; // ~ -112
+  // Torse volontairement ÉTROIT (épaule 25, taille 17) : la V1 avait un
+  // blob de silhouette pleine largeur (34-40) qui engloutissait les bras
+  // et lisait comme une "feuille" plate. Un torse plus fin laisse les bras
+  // dépasser clairement de la silhouette, ce qui est ce qui donne le volume.
+  const shoulderHalfW = 25;
+  const waistHalfW = 17;
+  const armAttachY = shoulderLocalY + 14;
+
+  function jointDot(x, y, r, light, dark) {
+    const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 1, x, y, r);
+    g.addColorStop(0, light);
+    g.addColorStop(1, dark);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // bras arrière (dans l'ombre, recule dans l'espace) : un seul segment,
+  // attaché HORS de la silhouette du torse (à -shoulderHalfW), jamais
+  // enterré au centre comme dans la V1.
+  ctx.save();
+  ctx.translate(-shoulderHalfW + 5, armAttachY);
+  ctx.rotate(((armAngle * 0.35 - 10) * Math.PI) / 180);
+  const backArmGrad = ctx.createLinearGradient(-7, 0, 7, 0);
+  backArmGrad.addColorStop(0, "#8a4d28");
+  backArmGrad.addColorStop(1, "#63341a");
+  ctx.strokeStyle = backArmGrad;
+  ctx.lineWidth = 13;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, 46);
+  ctx.stroke();
+  ctx.restore();
+  jointDot(-shoulderHalfW + 5, armAttachY, 8, "#a85c30", "#7a4522");
+
+  // chemise (col visible au-dessus de la salopette)
+  const shirtGrad = ctx.createLinearGradient(-shoulderHalfW, shoulderLocalY - 8, shoulderHalfW, shoulderLocalY + 22);
+  shirtGrad.addColorStop(0, "#eda06a");
+  shirtGrad.addColorStop(1, "#c26f3a");
+  ctx.fillStyle = shirtGrad;
+  roundedRect(ctx, -shoulderHalfW + 1, shoulderLocalY - 10, shoulderHalfW * 2 - 2, 28, 12);
+  ctx.fill();
+
+  // salopette (bib overalls) — torse EN TRAPÈZE (épaule large -> taille
+  // fine), pas un blob : la silhouette doit se lire comme un vêtement porté
+  // par un corps, pas comme une tache. Dégradé clair (gauche, lumière) ->
+  // sombre (droite) pour un sens de volume cylindrique.
+  const overallGrad = ctx.createLinearGradient(-shoulderHalfW, shoulderLocalY, shoulderHalfW, 0);
+  overallGrad.addColorStop(0, "#6a9bd1");
+  overallGrad.addColorStop(0.55, "#3f6a9c");
+  overallGrad.addColorStop(1, "#28486f");
+  ctx.fillStyle = overallGrad;
+  const torsoPath = () => {
+    ctx.beginPath();
+    ctx.moveTo(-waistHalfW, 0);
+    ctx.quadraticCurveTo(-shoulderHalfW - 3, shoulderLocalY * 0.45, -shoulderHalfW, shoulderLocalY + 12);
+    ctx.quadraticCurveTo(-shoulderHalfW, shoulderLocalY - 6, -shoulderHalfW + 12, shoulderLocalY - 8);
+    ctx.lineTo(shoulderHalfW - 12, shoulderLocalY - 8);
+    ctx.quadraticCurveTo(shoulderHalfW, shoulderLocalY - 6, shoulderHalfW, shoulderLocalY + 12);
+    ctx.quadraticCurveTo(shoulderHalfW + 3, shoulderLocalY * 0.45, waistHalfW, 0);
+    ctx.closePath();
+  };
+  torsoPath();
+  ctx.fill();
+  // bavette + bretelle
+  ctx.fillStyle = "#345a89";
+  roundedRect(ctx, -12, shoulderLocalY - 4, 24, 34, 6);
+  ctx.fill();
+  ctx.strokeStyle = "#213f66";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-9, shoulderLocalY - 4);
+  ctx.lineTo(-9, shoulderLocalY + 26);
+  ctx.moveTo(7, shoulderLocalY - 4);
+  ctx.lineTo(7, shoulderLocalY + 26);
+  ctx.stroke();
+  // rim light (bord éclairé, casse l'aplat)
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.strokeStyle = "#a8cdf0";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-shoulderHalfW + 1, shoulderLocalY + 10);
+  ctx.quadraticCurveTo(-shoulderHalfW - 2, shoulderLocalY * 0.45, -waistHalfW + 1, -2);
+  ctx.stroke();
+  ctx.restore();
+  // grain de tissu : CLIPPÉ à la silhouette de la salopette (jamais des
+  // poussières flottant hors du personnage — bug du premier essai).
+  ctx.save();
+  torsoPath();
+  ctx.clip();
+  grain(ctx, -shoulderHalfW - 4, shoulderLocalY, shoulderHalfW * 2 + 8, 4 - shoulderLocalY, 60, "#7aa5d6", "#25456c");
+  ctx.restore();
+
+  // tête + chapeau (dans le même groupe rigide : suit le lean du torse)
+  const headLocalY = HEAD_CENTER_Y - HIP_Y; // négatif, au-dessus des épaules
+  ctx.fillStyle = "#d98f5c";
+  roundedRect(ctx, -7, shoulderLocalY - 16, 14, 20, 5);
+  ctx.fill();
+  const headGrad = ctx.createRadialGradient(-8, headLocalY - 8, 4, 0, headLocalY, HEAD_R + 4);
+  headGrad.addColorStop(0, "#f6c896");
+  headGrad.addColorStop(0.6, "#e8a866");
+  headGrad.addColorStop(1, "#c9834a");
+  ctx.fillStyle = headGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, headLocalY, HEAD_R - 2, HEAD_R, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // nez (indice de profil)
+  ctx.fillStyle = "#dc9a62";
+  ctx.beginPath();
+  ctx.moveTo(21, headLocalY - 2);
+  ctx.quadraticCurveTo(28, headLocalY + 2, 21, headLocalY + 8);
+  ctx.quadraticCurveTo(25, headLocalY + 3, 21, headLocalY - 2);
+  ctx.fill();
+  ctx.fillStyle = "#3a2a1a";
+  ctx.beginPath();
+  ctx.ellipse(12, headLocalY - 4, 2.4, 2.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // chapeau
+  ctx.fillStyle = "#caa254";
+  ctx.beginPath();
+  ctx.ellipse(-2, headLocalY - 20, 19, 15, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+  const brimGrad = ctx.createLinearGradient(-30, headLocalY - 14, 34, headLocalY - 6);
+  brimGrad.addColorStop(0, "#b3894a");
+  brimGrad.addColorStop(1, "#8f6c38");
+  ctx.fillStyle = brimGrad;
+  ctx.beginPath();
+  ctx.moveTo(-28, headLocalY - 10);
+  ctx.quadraticCurveTo(-2, headLocalY - 20, 22, headLocalY - 14);
+  ctx.quadraticCurveTo(35, headLocalY - 11, 31, headLocalY - 4);
+  ctx.quadraticCurveTo(0, headLocalY - 8, -28, headLocalY - 4);
+  ctx.closePath();
+  ctx.fill();
+
+  // bras avant + avant-bras + seau (Seau B, hérite du mouvement du bras) —
+  // attaché HORS de la silhouette du torse (+shoulderHalfW), avec une
+  // rotule d'épaule et de coude visibles pour que le bras se lise comme un
+  // membre articulé et non une ligne collée sur le torse.
+  jointDot(shoulderHalfW - 5, armAttachY, 9, "#f4b781", "#c97f45");
+  ctx.save();
+  ctx.translate(shoulderHalfW - 5, armAttachY);
+  ctx.rotate((armAngle * Math.PI) / 180);
+  const armGrad = ctx.createLinearGradient(-9, 0, 9, 0);
+  armGrad.addColorStop(0, "#f0a86e");
+  armGrad.addColorStop(1, "#c97f45");
+  ctx.strokeStyle = armGrad;
+  ctx.lineWidth = 16;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, 54);
+  ctx.stroke();
+  jointDot(0, 54, 7.5, "#eda06a", "#b8703c");
+  ctx.save();
+  ctx.translate(0, 54);
+  ctx.rotate((forearmAngle * Math.PI) / 180);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, 44);
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(2, 48);
+  ctx.rotate((bucketTip * Math.PI) / 180);
+  const bucketGrad = ctx.createLinearGradient(-15, -6, 15, 28);
+  bucketGrad.addColorStop(0, "#d3dde1");
+  bucketGrad.addColorStop(0.5, "#95a0a6");
+  bucketGrad.addColorStop(1, "#5c666c");
+  ctx.fillStyle = bucketGrad;
+  ctx.beginPath();
+  ctx.moveTo(-14, -4);
+  ctx.lineTo(14, -4);
+  ctx.lineTo(10, 28);
+  ctx.lineTo(-10, 28);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#3a4247";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = "#3a8fc9";
+  ctx.beginPath();
+  ctx.moveTo(-12, -2);
+  ctx.lineTo(12, -2);
+  ctx.lineTo(10, 5);
+  ctx.lineTo(-10, 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#3a4247";
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(0, -4, 14, Math.PI, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+  ctx.restore();
+
+  ctx.restore(); // fin torse+tête+bras
+
+  // === JAMBE AVANT (dessinée après le torse : passe devant) ===
+  leg(6, frontKnee, frontFoot, 21, "#8a6230", "#5c4222", "#3d2c16");
+
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------
+// PUITS — construction en pierre avec profondeur perceptible : la
+// margelle a une épaisseur réelle (ellipse extérieure + ellipse
+// intérieure plus sombre, jamais un seul anneau plat), l'ouverture est un
+// dégradé radial qui s'assombrit vers le centre (vraie sensation de trou),
+// pierres individuelles distinguables par du bruit clippé + joints tracés.
+// ---------------------------------------------------------------------
+function drawWell(ctx) {
+  ctx.clearRect(0, 0, 340, 360);
+  ctx.save();
+  ctx.translate(170, 0);
+  softShadow(ctx, 0, 320, 110, 22, 0.35);
+
+  // Base en pierre (tronc conique léger = perspective)
+  const stoneGrad = ctx.createLinearGradient(-95, 180, 95, 320);
+  stoneGrad.addColorStop(0, "#c9bfa8");
+  stoneGrad.addColorStop(0.5, "#a89878");
+  stoneGrad.addColorStop(1, "#8a7a5e");
+  ctx.fillStyle = stoneGrad;
+  ctx.beginPath();
+  ctx.moveTo(-92, 320);
+  ctx.lineTo(-78, 182);
+  ctx.quadraticCurveTo(0, 165, 78, 182);
+  ctx.lineTo(92, 320);
+  ctx.quadraticCurveTo(0, 336, -92, 320);
+  ctx.closePath();
+  ctx.fill();
+  // joints de pierre + grain, clippés à la margelle
+  ctx.save();
+  ctx.clip();
+  grain(ctx, -95, 180, 190, 145, 260, "#d8cfb8", "#6f6248");
+  ctx.strokeStyle = "rgba(90,78,56,0.55)";
+  ctx.lineWidth = 1.6;
+  for (let row = 0; row < 4; row++) {
+    const y = 200 + row * 32;
+    ctx.beginPath();
+    ctx.moveTo(-90, y);
+    ctx.bezierCurveTo(-30, y + 4, 30, y - 4, 90, y);
+    ctx.stroke();
+  }
+  for (let i = -3; i <= 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * 26, 190);
+    ctx.lineTo(i * 26 + (i > 0 ? 8 : -8), 322);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // ombre de contact au pied de la margelle
+  const baseShade = ctx.createLinearGradient(0, 300, 0, 330);
+  baseShade.addColorStop(0, "rgba(30,20,10,0)");
+  baseShade.addColorStop(1, "rgba(30,20,10,0.3)");
+  ctx.fillStyle = baseShade;
+  ctx.fillRect(-92, 295, 184, 35);
+
+  // Margelle (rebord) avec épaisseur réelle : anneau extérieur clair + trou intérieur sombre
+  ctx.beginPath();
+  ctx.ellipse(0, 172, 82, 26, 0, 0, Math.PI * 2);
+  const rimGrad = ctx.createLinearGradient(-82, 150, 82, 195);
+  rimGrad.addColorStop(0, "#d6cbb0");
+  rimGrad.addColorStop(1, "#a89572");
+  ctx.fillStyle = rimGrad;
+  ctx.fill();
+  ctx.strokeStyle = "#8a7a5e";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  const mouthGrad = ctx.createRadialGradient(0, 168, 4, 0, 168, 66);
+  mouthGrad.addColorStop(0, "#0c2a33");
+  mouthGrad.addColorStop(0.55, "#1c4a58");
+  mouthGrad.addColorStop(1, "#2f6473");
+  ctx.beginPath();
+  ctx.ellipse(0, 168, 62, 18, 0, 0, Math.PI * 2);
+  ctx.fillStyle = mouthGrad;
+  ctx.fill();
+  // reflet d'eau (petit highlight, jamais un aplat)
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = "#bfe7f0";
+  ctx.beginPath();
+  ctx.ellipse(-18, 164, 16, 5, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Potence en bois (poteaux + poutre + toit à deux pans, volumes via dégradés)
+  const postGrad = ctx.createLinearGradient(-100, 20, -80, 20);
+  postGrad.addColorStop(0, "#5c4222");
+  postGrad.addColorStop(1, "#7a5c34");
+  ctx.fillStyle = postGrad;
+  ctx.beginPath();
+  roundedRect(ctx, -98, 20, 16, 150, 4);
+  ctx.fill();
+  ctx.beginPath();
+  roundedRect(ctx, 82, 20, 16, 150, 4);
+  ctx.fill();
+  ctx.fillStyle = "#6a4e2a";
+  ctx.beginPath();
+  roundedRect(ctx, -104, 10, 208, 18, 5);
+  ctx.fill();
+
+  // toit (deux pans, avec face ombrée à droite)
+  ctx.fillStyle = "#a4573f";
+  ctx.beginPath();
+  ctx.moveTo(-118, 12);
+  ctx.lineTo(0, -58);
+  ctx.lineTo(0, -34);
+  ctx.lineTo(-104, 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#7d3f2c";
+  ctx.beginPath();
+  ctx.moveTo(0, -58);
+  ctx.lineTo(118, 12);
+  ctx.lineTo(104, 20);
+  ctx.lineTo(0, -34);
+  ctx.closePath();
+  ctx.fill();
+  // tuiles (quelques lignes suffisent)
+  ctx.strokeStyle = "rgba(60,25,15,0.4)";
+  ctx.lineWidth = 1.3;
+  for (let i = 1; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-118 + i * 19, 12 - i * 2);
+    ctx.lineTo(-6 + i * 0.9, -50 + i * 7.6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(118 - i * 19, 12 - i * 2);
+    ctx.lineTo(6 - i * 0.9, -50 + i * 7.6);
+    ctx.stroke();
+  }
+
+  // poulie + corde + seau (mécanisme du puits, Seau A)
+  ctx.strokeStyle = "#4a3319";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, -30);
+  ctx.lineTo(0, 30);
+  ctx.stroke();
+  ctx.fillStyle = "#5c5347";
+  ctx.beginPath();
+  ctx.ellipse(0, -30, 9, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#3a2e1c";
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(-16, 30);
+  ctx.lineTo(-16, 90);
+  ctx.stroke();
+  const bucketGrad2 = ctx.createLinearGradient(-30, 90, -2, 90);
+  bucketGrad2.addColorStop(0, "#7d8890");
+  bucketGrad2.addColorStop(1, "#4d565c");
+  ctx.fillStyle = bucketGrad2;
+  ctx.beginPath();
+  ctx.moveTo(-28, 90);
+  ctx.lineTo(-4, 90);
+  ctx.lineTo(-6, 116);
+  ctx.lineTo(-26, 116);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------
+// RÉSERVE (tonneau) — vrai cylindre : dégradé horizontal multi-stops qui
+// suit la courbure (clair->sombre->reflet étroit->sombre), cerclages
+// métalliques en anneaux elliptiques (pas des rectangles plats), niveau
+// d'eau visible à travers une encoche.
+// ---------------------------------------------------------------------
+function drawBarrel(ctx) {
+  ctx.clearRect(0, 0, 260, 360);
+  ctx.save();
+  ctx.translate(130, 0);
+  softShadow(ctx, 0, 322, 80, 18, 0.35);
+
+  const top = 40, bottom = 300, rx = 74, ry = 16;
+  const bodyGrad = ctx.createLinearGradient(-rx, 0, rx, 0);
+  bodyGrad.addColorStop(0, "#c9a361");
+  bodyGrad.addColorStop(0.28, "#e8c384");
+  bodyGrad.addColorStop(0.52, "#c9a361");
+  bodyGrad.addColorStop(0.78, "#a9793f");
+  bodyGrad.addColorStop(1, "#8a6230");
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.moveTo(-rx, top + 8);
+  ctx.quadraticCurveTo(-rx - 6, (top + bottom) / 2, -rx, bottom - 8);
+  ctx.ellipse(0, bottom, rx, ry, 0, Math.PI, 0, true);
+  ctx.quadraticCurveTo(rx + 6, (top + bottom) / 2, rx, top + 8);
+  ctx.ellipse(0, top, rx, ry, 0, 0, Math.PI, true);
+  ctx.closePath();
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  grain(ctx, -rx, top, rx * 2, bottom - top, 140, "#f0d9ab", "#7a5a2c");
+  // douves (vertical staves) : quelques lignes courbes
+  ctx.strokeStyle = "rgba(90,62,26,0.35)";
+  ctx.lineWidth = 1.4;
+  for (let i = -3; i <= 3; i++) {
+    const x = i * (rx / 3.4);
+    ctx.beginPath();
+    ctx.moveTo(x, top + 6);
+    ctx.quadraticCurveTo(x * 1.06, (top + bottom) / 2, x, bottom - 6);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.ellipse(0, top, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#7a5a2c";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(0, top, rx - 8, ry - 5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#3a8fc9";
+  ctx.fill();
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = "#bfe7f0";
+  ctx.beginPath();
+  ctx.ellipse(-14, top - 3, 18, 5, -0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // cerclages métalliques (anneaux elliptiques, pas des bandes plates)
+  function hoop(y) {
+    const g = ctx.createLinearGradient(-rx - 4, y, rx + 4, y);
+    g.addColorStop(0, "#8a929a");
+    g.addColorStop(0.5, "#dbe2e6");
+    g.addColorStop(1, "#5c666c");
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.ellipse(0, y, rx + 3, 6, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  hoop(top + 48);
+  hoop(bottom - 48);
+
+  // goutte-emblème
+  ctx.fillStyle = "rgba(58,143,201,0.85)";
+  ctx.beginPath();
+  ctx.moveTo(0, top + 90);
+  ctx.bezierCurveTo(16, top + 112, 20, top + 130, 0, top + 146);
+  ctx.bezierCurveTo(-20, top + 130, -16, top + 112, 0, top + 90);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------
+// CAMION-CITERNE — citerne cylindrique (même technique que le tonneau,
+// orientation horizontale), cabine avec volume (deux faces visibles),
+// roues avec jante+pneu, chassis qui ancre le tout au sol.
+// ---------------------------------------------------------------------
+function drawTruck(ctx) {
+  ctx.clearRect(0, 0, 420, 260);
+  ctx.save();
+  ctx.translate(210, 0);
+  softShadow(ctx, -10, 210, 165, 18, 0.4);
+
+  // Chassis
+  ctx.fillStyle = "#2e2a26";
+  roundedRect(ctx, -168, 148, 300, 16, 4);
+  ctx.fill();
+
+  // Citerne (cylindre horizontal : dégradé vertical qui suit la courbure)
+  const tTop = 40, tBottom = 148, tCx = -20, tHalfLen = 132, capR = 22;
+  const tankGrad = ctx.createLinearGradient(0, tTop, 0, tBottom);
+  tankGrad.addColorStop(0, "#eef3f6");
+  tankGrad.addColorStop(0.32, "#c7d2d9");
+  tankGrad.addColorStop(0.58, "#8f9aa1");
+  tankGrad.addColorStop(1, "#5c666c");
+  ctx.fillStyle = tankGrad;
+  roundedRect(ctx, tCx - tHalfLen, tTop, tHalfLen * 2, tBottom - tTop, 26);
+  ctx.fill();
+  ctx.save();
+  ctx.beginPath();
+  roundedRect(ctx, tCx - tHalfLen, tTop, tHalfLen * 2, tBottom - tTop, 26);
+  ctx.clip();
+  grain(ctx, tCx - tHalfLen, tTop, tHalfLen * 2, tBottom - tTop, 90, "#ffffff", "#42484d");
+  // reflet horizontal (métal poli)
+  const shine = ctx.createLinearGradient(0, tTop, 0, tTop + 26);
+  shine.addColorStop(0, "rgba(255,255,255,0.55)");
+  shine.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = shine;
+  ctx.fillRect(tCx - tHalfLen, tTop, tHalfLen * 2, 30);
+  ctx.restore();
+  // calotte arrière (fond du cylindre, ellipse ombrée)
+  ctx.beginPath();
+  ctx.ellipse(tCx - tHalfLen, (tTop + tBottom) / 2, capR * 0.4, (tBottom - tTop) / 2, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#77828a";
+  ctx.fill();
+  // bande de renfort
+  ctx.fillStyle = "#9aa8b2";
+  ctx.fillRect(tCx - tHalfLen, tTop + 40, tHalfLen * 2, 10);
+  // échelle
+  ctx.strokeStyle = "#6b7680";
+  ctx.lineWidth = 2;
+  for (const dx of [-14, -4]) {
+    ctx.beginPath();
+    ctx.moveTo(tCx + tHalfLen - 40 + dx, tTop + 8);
+    ctx.lineTo(tCx + tHalfLen - 40 + dx, tBottom - 8);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(tCx + tHalfLen - 54, tTop + 16 + i * 24);
+    ctx.lineTo(tCx + tHalfLen - 26, tTop + 16 + i * 24);
+    ctx.stroke();
+  }
+
+  // Cabine (volume : face avant + face latérale, deux tons)
+  const cabX = tCx + tHalfLen + 6, cabW = 78, cabTop = 54, cabBottom = 148;
+  ctx.fillStyle = "#2c5580";
+  roundedRect(ctx, cabX, cabTop, cabW, cabBottom - cabTop, 10);
+  ctx.fill();
+  ctx.fillStyle = "#3a6a9c";
+  roundedRect(ctx, cabX, cabTop, cabW * 0.62, cabBottom - cabTop, 10);
+  ctx.fill();
+  // pare-brise
+  const winGrad = ctx.createLinearGradient(0, cabTop + 10, 0, cabTop + 46);
+  winGrad.addColorStop(0, "#dff2fa");
+  winGrad.addColorStop(1, "#8fc4dc");
+  ctx.fillStyle = winGrad;
+  roundedRect(ctx, cabX + 8, cabTop + 10, cabW * 0.62 - 16, 34, 4);
+  ctx.fill();
+  // calandre + phare
+  ctx.fillStyle = "#1c2226";
+  roundedRect(ctx, cabX + cabW - 10, cabTop + 60, 10, 30, 2);
+  ctx.fill();
+  ctx.fillStyle = "#f0d878";
+  ctx.beginPath();
+  ctx.ellipse(cabX + cabW - 4, cabTop + 96, 5, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Roues (jante + pneu, jamais un disque plat uniforme)
+  function wheel(cx) {
+    ctx.beginPath();
+    ctx.ellipse(cx, 150, 24, 24, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#1c1a18";
+    ctx.fill();
+    const rimGrad = ctx.createRadialGradient(cx - 4, 146, 2, cx, 150, 13);
+    rimGrad.addColorStop(0, "#c7ccd0");
+    rimGrad.addColorStop(1, "#6b7278");
+    ctx.beginPath();
+    ctx.ellipse(cx, 150, 12, 12, 0, 0, Math.PI * 2);
+    ctx.fillStyle = rimGrad;
+    ctx.fill();
+    ctx.strokeStyle = "#3a3f43";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, 150, 24, 24, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  wheel(tCx - 78);
+  wheel(cabX + 34);
+
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------
+// ARRIÈRE-PLAN — même technique (Canvas 2D, dégradés + grain) que les
+// objets au premier plan : un fond peint en SVG plat à côté d'un fermier
+// ombré en canvas donnerait l'impression de deux univers différents
+// (auto-critique Q4 du cahier des charges). Montagnes en 3 plans avec
+// brume atmosphérique (dégradé qui éclaircit vers l'arrière), lac avec
+// reflet, silhouette de collines.
+// ---------------------------------------------------------------------
+function drawBackground(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, "#5fa8d8");
+  sky.addColorStop(0.55, "#a8d3c8");
+  sky.addColorStop(1, "#e8dfa8");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  // Silhouette organique (bezier), jamais un triangle géométrique parfait —
+  // une montagne réelle a des arêtes irrégulières, pas deux droites nettes.
+  function mountain(cx, peakY, halfW, baseY, tone) {
+    ctx.beginPath();
+    ctx.moveTo(cx - halfW, baseY);
+    ctx.quadraticCurveTo(cx - halfW * 0.55, peakY + (baseY - peakY) * 0.5, cx - halfW * 0.18, peakY + (baseY - peakY) * 0.22);
+    ctx.quadraticCurveTo(cx - halfW * 0.05, peakY + (baseY - peakY) * 0.08, cx, peakY);
+    ctx.quadraticCurveTo(cx + halfW * 0.08, peakY + (baseY - peakY) * 0.1, cx + halfW * 0.22, peakY + (baseY - peakY) * 0.26);
+    ctx.quadraticCurveTo(cx + halfW * 0.6, peakY + (baseY - peakY) * 0.55, cx + halfW, baseY);
+    ctx.closePath();
+    ctx.fillStyle = tone;
+    ctx.fill();
+  }
+  // plan lointain (brumeux)
+  mountain(w * 0.22, h * 0.12, w * 0.28, h * 0.42, "#b7c9d8");
+  mountain(w * 0.55, h * 0.06, w * 0.32, h * 0.42, "#aec2d3");
+  mountain(w * 0.85, h * 0.16, w * 0.26, h * 0.42, "#b7c9d8");
+  // plan intermédiaire (un peu plus net/saturé = plus proche)
+  mountain(w * 0.38, h * 0.22, w * 0.24, h * 0.46, "#8fa8bd");
+  mountain(w * 0.72, h * 0.2, w * 0.28, h * 0.46, "#96acc0");
+  // neige (petits triangles clairs sur les sommets lointains)
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.55, h * 0.06);
+  ctx.lineTo(w * 0.55 - 14, h * 0.06 + 22);
+  ctx.lineTo(w * 0.55 + 14, h * 0.06 + 22);
+  ctx.closePath();
+  ctx.fill();
+
+  // brume atmosphérique (jamais un filtre de flou coûteux : un dégradé statique suffit)
+  const haze = ctx.createLinearGradient(0, h * 0.1, 0, h * 0.5);
+  haze.addColorStop(0, "rgba(255,255,255,0)");
+  haze.addColorStop(1, "rgba(238,246,255,0.5)");
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, 0, w, h * 0.5);
+
+  // lac
+  ctx.beginPath();
+  ctx.ellipse(w * 0.52, h * 0.5, w * 0.34, h * 0.05, 0, 0, Math.PI * 2);
+  const lakeGrad = ctx.createLinearGradient(0, h * 0.45, 0, h * 0.55);
+  lakeGrad.addColorStop(0, "#bcdce6");
+  lakeGrad.addColorStop(1, "#8fc0d2");
+  ctx.fillStyle = lakeGrad;
+  ctx.fill();
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.35, h * 0.5);
+  ctx.quadraticCurveTo(w * 0.5, h * 0.49, w * 0.68, h * 0.5);
+  ctx.stroke();
+  ctx.restore();
+
+  // collines (plan le plus proche de l'arrière-plan, plus saturé/foncé) —
+  // remontées pour former une vraie bande verte visible AU-DESSUS de la
+  // couture avec le sol (le sol recouvre ~34% du bas : voir prototype.html
+  // `.ground-img { height }`). La V1 avait ses collines entièrement sous
+  // cette couture, donc invisibles — la comparaison avec V5 (qui a une
+  // bande d'herbe bien visible) l'a révélé.
+  ctx.fillStyle = "#7fae63";
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.68);
+  ctx.quadraticCurveTo(w * 0.25, h * 0.5, w * 0.55, h * 0.58);
+  ctx.quadraticCurveTo(w * 0.8, h * 0.64, w, h * 0.54);
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#699852";
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.8);
+  ctx.quadraticCurveTo(w * 0.35, h * 0.64, w * 0.66, h * 0.7);
+  ctx.quadraticCurveTo(w * 0.85, h * 0.74, w, h * 0.66);
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+  ctx.fill();
+
+  // Deux arbres stylisés (volume via dégradé radial sur la ramure, jamais
+  // un simple cercle plat) + un petit hameau lointain sur la crête, pour
+  // une richesse de plan comparable à V5 (qui a arbres + village + pancarte).
+  function distantTree(x, y, scale) {
+    ctx.fillStyle = "#5c3a1e";
+    ctx.fillRect(x - 2 * scale, y - 6 * scale, 4 * scale, 16 * scale);
+    const g = ctx.createRadialGradient(x - 6 * scale, y - 30 * scale, 2, x, y - 22 * scale, 22 * scale);
+    g.addColorStop(0, "#8fc26a");
+    g.addColorStop(1, "#4d7c37");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(x, y - 22 * scale, 20 * scale, 18 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  distantTree(w * 0.12, h * 0.58, 0.85);
+  distantTree(w * 0.9, h * 0.56, 0.7);
+
+  function hamlet(cx, y) {
+    const roofs = [
+      { dx: -26, tone: "#b5563f" },
+      { dx: 0, tone: "#c66b4a" },
+      { dx: 24, tone: "#a84f3a" },
+    ];
+    for (const r of roofs) {
+      ctx.fillStyle = "#e8ddc8";
+      ctx.fillRect(cx + r.dx - 8, y - 7, 16, 10);
+      ctx.fillStyle = r.tone;
+      ctx.beginPath();
+      ctx.moveTo(cx + r.dx - 10, y - 6);
+      ctx.lineTo(cx + r.dx, y - 15);
+      ctx.lineTo(cx + r.dx + 10, y - 6);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  hamlet(w * 0.58, h * 0.535);
+}
+
+// ---------------------------------------------------------------------
+// SOL — bande texturée (grain + variation de teinte + chemin usé plus
+// clair), jamais un unique aplat rectangulaire.
+// ---------------------------------------------------------------------
+function drawGround(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "#a9793f");
+  g.addColorStop(1, "#8a6230");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  grain(ctx, 0, 0, w, h, Math.floor(w * h / 260), "#c9a361", "#6b4a24");
+  // chemin usé (plus clair, texture piétinée)
+  const path = ctx.createLinearGradient(0, h * 0.35, 0, h * 0.75);
+  path.addColorStop(0, "rgba(214,181,128,0.75)");
+  path.addColorStop(1, "rgba(214,181,128,0.35)");
+  ctx.fillStyle = path;
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.55);
+  ctx.quadraticCurveTo(w * 0.3, h * 0.4, w * 0.6, h * 0.5);
+  ctx.quadraticCurveTo(w * 0.85, h * 0.58, w, h * 0.45);
+  ctx.lineTo(w, h * 0.8);
+  ctx.quadraticCurveTo(w * 0.7, h * 0.7, w * 0.4, h * 0.78);
+  ctx.quadraticCurveTo(w * 0.2, h * 0.85, 0, h * 0.75);
+  ctx.closePath();
+  ctx.fill();
+  // petits cailloux
+  for (let i = 0; i < 22; i++) {
+    const x = Math.random() * w, y = h * 0.4 + Math.random() * h * 0.5;
+    ctx.fillStyle = Math.random() > 0.5 ? "#7a6248" : "#b89666";
+    ctx.beginPath();
+    ctx.ellipse(x, y, 2 + Math.random() * 2.5, 1.4 + Math.random() * 1.6, Math.random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ---------------------------------------------------------------------
+// PREMIER PLAN — muret de pierre bas + fleurs, au tout premier plan (au-
+// dessus du fermier). La référence s'en sert énormément pour séparer
+// premier plan / plan de jeu / arrière-plan ; le prototype n'avait jusque
+// là que 2 plans (décor + sol), jamais ce 3e plan explicite devant l'action.
+// ---------------------------------------------------------------------
+function drawForeground(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  const wallTop = h * 0.35;
+  const wallGrad = ctx.createLinearGradient(0, wallTop, 0, h);
+  wallGrad.addColorStop(0, "#9c8f74");
+  wallGrad.addColorStop(1, "#6f6248");
+  ctx.fillStyle = wallGrad;
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(0, wallTop + 10);
+  ctx.quadraticCurveTo(w * 0.5, wallTop - 8, w, wallTop + 6);
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  grain(ctx, 0, wallTop, w, h - wallTop, Math.floor(w / 3), "#c2b494", "#4a3f2c");
+  ctx.strokeStyle = "rgba(60,50,34,0.5)";
+  ctx.lineWidth = 1.6;
+  for (let i = 0; i < 6; i++) {
+    const y = wallTop + 14 + i * 16;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.bezierCurveTo(w * 0.3, y + 5, w * 0.7, y - 5, w, y);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 26; i++) {
+    const x = (i / 26) * w + (i % 2) * 14;
+    ctx.beginPath();
+    ctx.moveTo(x, wallTop + 8);
+    ctx.lineTo(x + (Math.random() - 0.5) * 10, h);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // liseré de lumière sur la crête du muret
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = "#e6dcc0";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(0, wallTop + 10);
+  ctx.quadraticCurveTo(w * 0.5, wallTop - 8, w, wallTop + 6);
+  ctx.stroke();
+  ctx.restore();
+
+  // touffes de fleurs le long de la crête
+  function flowerTuft(x, y, hue) {
+    ctx.fillStyle = "#5f9a4d";
+    ctx.beginPath();
+    ctx.ellipse(x, y + 4, 9, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    for (const [dx, dy] of [[-5, -2], [5, -2], [0, -6]]) {
+      ctx.fillStyle = hue;
+      ctx.beginPath();
+      ctx.ellipse(x + dx, y + dy, 3.4, 3.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#f2c94c";
+    ctx.beginPath();
+    ctx.ellipse(x, y - 2, 1.6, 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const positions = [0.06, 0.22, 0.5, 0.78, 0.94];
+  const hues = ["#f4a8c0", "#f6e08a", "#f4a8c0", "#e8927e", "#f6e08a"];
+  positions.forEach((p, i) => flowerTuft(p * w, wallTop, hues[i]));
+}
+
+// ---------------------------------------------------------------------
+// Rendu des canvases + export (voir gen-sprites.mjs)
+// ---------------------------------------------------------------------
+window.renderAll = function renderAll() {
+  const walk = mkCanvas("farmer-walk", 300, 420);
+  drawFarmer(walk.getContext("2d"), "walk");
+
+  const well = mkCanvas("farmer-well", 300, 420);
+  drawFarmer(well.getContext("2d"), "well");
+
+  const pour = mkCanvas("farmer-pour", 300, 420);
+  drawFarmer(pour.getContext("2d"), "pour");
+
+  const wellC = mkCanvas("well", 340, 360);
+  drawWell(wellC.getContext("2d"));
+
+  const barrelC = mkCanvas("barrel", 260, 360);
+  drawBarrel(barrelC.getContext("2d"));
+
+  const truckC = mkCanvas("truck", 420, 260);
+  drawTruck(truckC.getContext("2d"));
+
+  const bg = mkCanvas("background", 400, 560);
+  drawBackground(bg.getContext("2d"), 400, 560);
+
+  const ground = mkCanvas("ground", 900, 160);
+  drawGround(ground.getContext("2d"), 900, 160);
+
+  const fg = mkCanvas("foreground", 900, 90);
+  drawForeground(fg.getContext("2d"), 900, 90);
+};
+window.renderAll();
+</script>
+</body>
+</html>

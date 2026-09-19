@@ -150,6 +150,26 @@ body {
   stroke-width: 1.6;
   stroke-linecap: round;
   opacity: 0.6;
+  /* V5 (section 5) : un léger scintillement, jamais un miroitement
+     agressif — la surface de l'eau reste "vivante" même sans interaction,
+     à un coût nul pour le thread principal (opacity pur, compositeur). */
+  animation: lake-shimmer 3.6s ease-in-out infinite;
+}
+@keyframes lake-shimmer {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+/* Brume atmosphérique (V5, section 5 : "profondeur, premier plan/plan de
+   jeu/arrière-plan clairement séparés") : purement décorative, jamais
+   superposée aux éléments fonctionnels (bien au-dessus de y=260). */
+.atmospheric-haze {
+  fill: url(#haze-gradient);
+  pointer-events: none;
 }
 .bridge-deck {
   fill: #b9a988;
@@ -197,6 +217,27 @@ body {
 .tree-small .tree-canopy {
   fill: #45813e;
 }
+/* V5 (section 5) : léger balancement du feuillage par la brise, jamais du
+   tronc — vit sur un groupe séparé (voir scene.js), pivote depuis le haut
+   du tronc, uniquement transform (compositeur), jamais de re-calcul JS. */
+.tree-canopy-group {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: canopy-sway 5s ease-in-out infinite;
+}
+.tree-small .tree-canopy-group {
+  animation-duration: 4.2s;
+  animation-delay: -1.4s; /* déphasé du grand arbre, jamais synchronisé */
+}
+@keyframes canopy-sway {
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
 
 /* Haie/bordure vivante : fleurs, poule, charrette. */
 .flower-petal {
@@ -225,6 +266,28 @@ body {
 .chicken-leg {
   stroke: #e0902f;
   stroke-width: 1.4;
+}
+/* V5 (section 5) : petit coup de bec occasionnel — un animal qui ne
+   bouge jamais a l'air d'un décor mort, même un seul suffit. Pivote
+   depuis la base du cou (pas le centre de la tête), pause longue entre
+   deux coups (durée totale >> mouvement réel) pour ne jamais distraire. */
+.chicken-head-group {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: chicken-peck 5.5s ease-in-out infinite;
+}
+@keyframes chicken-peck {
+  0%,
+  85%,
+  100% {
+    transform: rotate(0deg);
+  }
+  90% {
+    transform: rotate(22deg);
+  }
+  95% {
+    transform: rotate(0deg);
+  }
 }
 .cart-bed {
   fill: #8a6a45;

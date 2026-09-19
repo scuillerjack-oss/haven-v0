@@ -50,6 +50,14 @@ export function sceneMarkup() {
           <stop offset="0%" stop-color="#a7bdd4" />
           <stop offset="100%" stop-color="#8497ae" />
         </linearGradient>
+        <!-- Perspective atmosphérique (V5, section 5) : les éléments
+             lointains s'éclaircissent vers l'horizon, jamais un filtre de
+             flou SVG (même coût par image qu'un attribut muté — voir le
+             correctif du camion). Un dégradé statique suffit. -->
+        <linearGradient id="haze-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#eef6ff" stop-opacity="0" />
+          <stop offset="100%" stop-color="#eef6ff" stop-opacity="0.35" />
+        </linearGradient>
         <!-- Volume/matière des 3 éléments "héros" : jamais un simple aplat,
              un dégradé clair->ombré simule une source de lumière cohérente
              (haut à gauche), seule concession "3D" raisonnable en SVG pur. -->
@@ -104,19 +112,32 @@ export function sceneMarkup() {
           <g class="village-house" transform="translate(34,11)"><rect x="-4" y="-7" width="9" height="7" /><polygon points="-5,-7 5,-7 0,-12" /></g>
         </g>
 
+        <rect x="0" y="60" width="400" height="165" class="atmospheric-haze" />
+
         <path class="hill hill-back" d="M0 258 Q100 175 220 210 T400 190 L400 380 L0 380 Z" />
         <path class="hill hill-front" d="M0 300 Q140 232 260 258 T400 244 L400 380 L0 380 Z" />
 
+        <!-- V5 (section 5 : "la scène doit rester vivante même hors
+             interaction") : un léger balancement du feuillage, jamais du
+             tronc (le vent bouge les branches, pas la base de l'arbre).
+             Groupe séparé du tronc justement pour ça. Pure CSS (transform/
+             opacity uniquement, jamais un attribut ni un filtre SVG) :
+             même famille de coût que la correction du camion plus haut,
+             le compositeur anime seul, sans jamais re-solliciter JS. -->
         <g class="tree" transform="translate(112, 252)">
           <rect x="-3" y="-24" width="6" height="24" class="tree-trunk" />
-          <circle cx="0" cy="-32" r="17" class="tree-canopy" />
-          <circle cx="-11" cy="-25" r="12" class="tree-canopy" />
-          <circle cx="11" cy="-27" r="13" class="tree-canopy" />
+          <g class="tree-canopy-group">
+            <circle cx="0" cy="-32" r="17" class="tree-canopy" />
+            <circle cx="-11" cy="-25" r="12" class="tree-canopy" />
+            <circle cx="11" cy="-27" r="13" class="tree-canopy" />
+          </g>
         </g>
         <g class="tree tree-small" transform="translate(312, 238)">
           <rect x="-2.5" y="-19" width="5" height="19" class="tree-trunk" />
-          <circle cx="0" cy="-25" r="13" class="tree-canopy" />
-          <circle cx="-8" cy="-19" r="9" class="tree-canopy" />
+          <g class="tree-canopy-group">
+            <circle cx="0" cy="-25" r="13" class="tree-canopy" />
+            <circle cx="-8" cy="-19" r="9" class="tree-canopy" />
+          </g>
         </g>
 
         <g class="signpost" transform="translate(290, 250)">
@@ -136,9 +157,11 @@ export function sceneMarkup() {
         <g class="flower" transform="translate(165,396)"><circle r="3" class="flower-petal" /><circle cx="4" cy="-1" r="3" class="flower-petal" /><circle cx="-1" cy="-4" r="3" class="flower-petal" /><circle r="1.4" class="flower-center" /></g>
         <g class="chicken" transform="translate(168,378)">
           <ellipse cx="0" cy="-6" rx="9" ry="7" class="chicken-body" />
-          <circle cx="8" cy="-14" r="4" class="chicken-head" />
-          <polygon points="12,-14 17,-13 12,-11" class="chicken-beak" />
-          <path d="M-2 -18 q3 -3 6 0" class="chicken-comb" />
+          <g class="chicken-head-group">
+            <circle cx="8" cy="-14" r="4" class="chicken-head" />
+            <polygon points="12,-14 17,-13 12,-11" class="chicken-beak" />
+            <path d="M-2 -18 q3 -3 6 0" class="chicken-comb" />
+          </g>
           <line x1="-3" y1="0" x2="-3" y2="4" class="chicken-leg" />
           <line x1="3" y1="0" x2="3" y2="4" class="chicken-leg" />
         </g>

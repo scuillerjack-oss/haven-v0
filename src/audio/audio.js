@@ -1,17 +1,35 @@
-// Nappe instrumentale calme, générée en pur WebAudio (pas de fichier audio
-// à charger : rien à télécharger, rien qui ne ralentisse la V0). Quelques
-// oscillateurs accordés sur un accord ouvert, une LFO lente sur le volume
-// pour respirer, et un filtre passe-bas pour rester doux.
+// Musique d'ambiance pastorale, générée en pur WebAudio (pas de fichier
+// audio à charger : rien à télécharger, rien qui ne ralentisse la PWA).
+//
+// V4 (section AUDIO du cahier des charges post-bêta V3) : remplace
+// l'ancienne nappe (4 sinusoïdes tenues en permanence + LFO de volume),
+// perçue comme un "vouuuummm" continu — jamais une musique, jamais une
+// note tenue, jamais une boucle de quelques secondes déguisée en musique.
+// La partition elle-même (quelles notes, quand) vit dans melody.js, pure
+// et testable ; ce fichier ne fait que la JOUER — programmation "look-
+// ahead" classique en WebAudio (on programme les prochaines notes un peu
+// à l'avance à intervalles réguliers, jamais note par note en direct, ce
+// qui dériverait avec la latence de setInterval).
+import { composePastoralMelody } from "./melody.js";
 
-const CHORD_HZ = [98, 147, 196, 246.94]; // Sol2, Ré3, Sol3, Si3 — accord ouvert calme.
+const SCHEDULER_INTERVAL_MS = 50;
+const LOOKAHEAD_SECONDS = 0.15;
 
 export class AmbientAudio {
   constructor() {
     this.ctx = null;
     this.masterGain = null;
+    this.melodyFilter = null;
+    this.chordFilter = null;
     this.started = false;
     this.muted = false;
     this.volume = 0.5;
+
+    this.melody = null;
+    this.loopStartTime = 0;
+    this.loopIteration = 0;
+    this.nextNoteIndex = 0;
+    this.schedulerHandle = null;
   }
 
   ensureContext() {
@@ -22,6 +40,19 @@ export class AmbientAudio {
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = this.muted ? 0 : this.volume;
     this.masterGain.connect(this.ctx.destination);
+
+    // Filtre doux par voix : la mélodie reste chaleureuse (triangle un peu
+    // adouci), l'accompagnement encore plus feutré (sinusoïde très filtrée,
+    // jamais au premier plan).
+    this.melodyFilter = this.ctx.createBiquadFilter();
+    this.melodyFilter.type = "lowpass";
+    this.melodyFilter.frequency.value = 2600;
+    this.melodyFilter.connect(this.masterGain);
+
+    this.chordFilter = this.ctx.createBiquadFilter();
+    this.chordFilter.type = "lowpass";
+    this.chordFilter.frequency.value = 900;
+    this.chordFilter.connect(this.masterGain);
   }
 
   start() {
@@ -29,32 +60,59 @@ export class AmbientAudio {
     if (!this.ctx || this.started) return;
     this.started = true;
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = 900;
-    filter.connect(this.masterGain);
+    this.melody = composePastoralMelody();
+    this.loopIteration = 0;
+    this.nextNoteIndex = 0;
+    this.loopStartTime = this.ctx.currentTime + 0.1; // petite marge avant la première note
 
-    CHORD_HZ.forEach((freq, i) => {
-      const osc = this.ctx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.value = freq;
+    this.scheduleUpcomingNotes();
+    this.schedulerHandle = setInterval(() => this.scheduleUpcomingNotes(), SCHEDULER_INTERVAL_MS);
+  }
 
-      const voiceGain = this.ctx.createGain();
-      voiceGain.gain.value = 0.18 / (i + 1);
+  // Programme, à chaque tick, toutes les notes qui tombent dans la fenêtre
+  // [maintenant, maintenant + LOOKAHEAD]. S'appuie uniquement sur l'horloge
+  // propre à AudioContext (ctx.currentTime) : elle se fige pendant une mise
+  // en arrière-plan et reprend exactement où elle en était, donc aucune
+  // dérive ni rattrapage brutal n'est nécessaire au retour au premier plan.
+  scheduleUpcomingNotes() {
+    if (!this.ctx || !this.melody) return;
+    const horizon = this.ctx.currentTime + LOOKAHEAD_SECONDS;
+    while (true) {
+      const note = this.melody.notes[this.nextNoteIndex];
+      const absoluteTime = this.loopStartTime + this.loopIteration * this.melody.loopSeconds + note.time;
+      if (absoluteTime >= horizon) break;
+      this.playNote(note, absoluteTime);
+      this.nextNoteIndex += 1;
+      if (this.nextNoteIndex >= this.melody.notes.length) {
+        this.nextNoteIndex = 0;
+        this.loopIteration += 1;
+      }
+    }
+  }
 
-      const lfo = this.ctx.createOscillator();
-      lfo.type = "sine";
-      lfo.frequency.value = 0.05 + i * 0.01;
-      const lfoGain = this.ctx.createGain();
-      lfoGain.gain.value = 0.06 / (i + 1);
-      lfo.connect(lfoGain);
-      lfoGain.connect(voiceGain.gain);
+  // Chaque note a sa propre enveloppe (attaque puis chute complète à
+  // zéro) : jamais un gain qui reste ouvert en continu, jamais un drone.
+  playNote(note, when) {
+    const isChord = note.kind === "chord";
+    const osc = this.ctx.createOscillator();
+    osc.type = isChord ? "sine" : "triangle";
+    osc.frequency.value = note.freq;
 
-      osc.connect(voiceGain);
-      voiceGain.connect(filter);
-      osc.start();
-      lfo.start();
-    });
+    const gain = this.ctx.createGain();
+    const peak = isChord ? 0.05 : 0.22;
+    const attack = isChord ? 0.4 : 0.02;
+    const release = isChord ? 1.4 : Math.min(0.35, note.durationSeconds * 0.4);
+    const sustainEnd = when + Math.max(note.durationSeconds - release, attack);
+
+    gain.gain.setValueAtTime(0, when);
+    gain.gain.linearRampToValueAtTime(peak, when + attack);
+    gain.gain.setValueAtTime(peak, sustainEnd);
+    gain.gain.linearRampToValueAtTime(0, sustainEnd + release);
+
+    osc.connect(gain);
+    gain.connect(isChord ? this.chordFilter : this.melodyFilter);
+    osc.start(when);
+    osc.stop(sustainEnd + release + 0.05);
   }
 
   resume() {

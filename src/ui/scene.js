@@ -13,6 +13,16 @@
 const HOME_X = 150;
 const WELL_X = 70;
 const STORAGE_X = 210;
+// V5 (section 3 du cahier des charges post-bêta V4) : le fermier s'arrêtait
+// jusqu'ici pile au CENTRE du puits/de la réserve — son corps se
+// superposait donc à la margelle et au tonneau, rendant tout geste
+// (tirer la corde, verser l'eau) illisible puisqu'il se confondait avec
+// l'objet lui-même. Il s'arrête désormais juste À CÔTÉ, dans le sens d'où
+// il vient (à droite du puits en arrivant de la maison, à gauche de la
+// réserve en arrivant du puits) — le geste reste visible à côté de l'objet
+// plutôt que fondu dedans.
+const WELL_STAND_X = WELL_X + 34;
+const STORAGE_STAND_X = STORAGE_X - 34;
 const TRUCK_DOCK_X = 290;
 const TRUCK_HIDDEN_X = 420;
 // Durée réelle (ms) de la phase de départ scriptée du camion — voir le
@@ -218,6 +228,13 @@ export function sceneMarkup() {
       <!-- Le fermier : un seul travailleur visible, un seul seau
            personnel (Seau B) qui l'accompagne en permanence. -->
       <g class="farmer" transform="translate(${HOME_X}, 380)">
+        <!-- Le flip gauche/droite vit sur un groupe séparé de la position :
+             la position se lisse sur 0.3s (transition existante, jamais
+             retouchée) mais le flip lui-même doit rester rapide et net —
+             une transition de 0.3s sur un scaleX traverse zéro et ferait
+             passer le fermier par un instant "aplati sur la tranche",
+             jamais un vrai demi-tour. -->
+        <g class="farmer-facing">
         <g class="farmer-bob">
           <g class="farmer-hip" transform="translate(0, -20)">
             <g class="farmer-leg farmer-leg-l">
@@ -233,28 +250,45 @@ export function sceneMarkup() {
           <path d="M-11 -44 Q-13 -16 -11 -8 L11 -8 Q13 -16 11 -44 Q0 -50 -11 -44 Z" class="farmer-body" />
           <rect x="-11" y="-30" width="22" height="4" class="farmer-strap" />
 
+          <!-- V5 : le seau est porté par le bras DROIT (farmer-arm-r), pas
+               le gauche — dans la pose canonique "tourné vers la droite"
+               (voir plus haut), le bras droit est le bras AVANT (côté
+               puits/réserve). Après le flip gauche/droite (scaleX), ce même
+               bras reste toujours le bras avant, quel que soit le sens du
+               trajet : le seau se retrouve donc systématiquement du bon
+               côté pour un geste crédible (tirer la corde au puits, verser
+               à la réserve), jamais du côté qui tourne le dos à l'objet. -->
           <g class="farmer-shoulder" transform="translate(0, -40)">
             <g class="farmer-arm farmer-arm-l">
               <line x1="0" y1="0" x2="-10" y2="11" class="farmer-limb farmer-limb-arm" />
-              <g class="farmer-hand-bucket" transform="translate(-10,11)">
+              <circle cx="-10" cy="11" r="2.2" class="farmer-hand" />
+            </g>
+            <g class="farmer-arm farmer-arm-r">
+              <line x1="0" y1="0" x2="10" y2="11" class="farmer-limb farmer-limb-arm" />
+              <g class="farmer-hand-bucket" transform="translate(10,11)">
                 <line x1="0" y1="0" x2="0" y2="-5" class="farmer-bucket-handle" />
                 <rect x="-6" y="-5" width="12" height="9" rx="1.5" class="farmer-bucket" />
               </g>
             </g>
-            <g class="farmer-arm farmer-arm-r">
-              <line x1="0" y1="0" x2="10" y2="11" class="farmer-limb farmer-limb-arm" />
-              <circle cx="10" cy="11" r="2.2" class="farmer-hand" />
-            </g>
           </g>
 
           <circle cx="0" cy="-52" r="8.5" class="farmer-head" />
-          <!-- Petit visage : deux yeux suffisent à donner du caractère,
-               jamais un visage détaillé qui ne resterait pas lisible à
-               l'échelle mobile. -->
-          <circle cx="-3" cy="-52" r="1" class="farmer-eye" />
-          <circle cx="3" cy="-52" r="1" class="farmer-eye" />
+          <!-- V5 (section 3) : le fermier ne doit plus regarder le joueur
+               en permanence. Le pose canonique (celle dessinée ici, jamais
+               retouchée à la volée) représente un fermier tourné vers la
+               DROITE — le sens du trajet vers la réserve ; le sens gauche
+               (vers le puits) s'obtient par le flip scaleX (voir
+               farmerFacing() plus bas), jamais une seconde pose dessinée à
+               la main. Les yeux décalés vers l'avant (et non plus centrés)
+               ET la visière du chapeau asymétrique (plus longue à l'avant,
+               comme une vraie visière qui protège le regard dans le sens de
+               la marche) sont les deux détails qui rendent ce flip visible
+               au lieu de mirer un personnage parfaitement symétrique. -->
+          <circle cx="2" cy="-52.3" r="1" class="farmer-eye" />
+          <circle cx="5" cy="-52.3" r="1" class="farmer-eye" />
           <path d="M-6 -59 Q-6 -68 0 -68 Q6 -68 6 -59 Z" class="farmer-hat-top" />
-          <ellipse cx="0" cy="-59" rx="11.5" ry="3" class="farmer-hat-brim" />
+          <path d="M-8 -59.5 Q-8 -62 -3 -62 L10 -59.7 Q13.5 -59 10 -57 L-8 -57 Z" class="farmer-hat-brim" />
+        </g>
         </g>
       </g>
 
@@ -271,16 +305,16 @@ export function sceneMarkup() {
 const PHASE_TO_WORKER_X = {
   prepare: HOME_X,
   walkToWell: null, // interpolé
-  lowerBucket: WELL_X,
-  wellFill: WELL_X,
-  raiseBucket: WELL_X,
+  lowerBucket: WELL_STAND_X,
+  wellFill: WELL_STAND_X,
+  raiseBucket: WELL_STAND_X,
   walkToStorage: null, // interpolé
-  pour: STORAGE_X,
+  pour: STORAGE_STAND_X,
   walkBack: null, // interpolé
   // Le moteur bloque le fermier exactement au point de livraison quand le
-  // stockage est plein : la position affichée doit rester STORAGE_X,
+  // stockage est plein : la position affichée doit rester STORAGE_STAND_X,
   // jamais un autre point (sinon retour à la téléportation déjà corrigée).
-  waitingForRoom: STORAGE_X,
+  waitingForRoom: STORAGE_STAND_X,
 };
 
 function lerp(a, b, t) {
@@ -290,9 +324,9 @@ function lerp(a, b, t) {
 function workerX(phase) {
   const known = PHASE_TO_WORKER_X[phase.key];
   if (known !== null && known !== undefined) return known;
-  if (phase.key === "walkToWell") return lerp(HOME_X, WELL_X, phase.progress);
-  if (phase.key === "walkToStorage") return lerp(WELL_X, STORAGE_X, phase.progress);
-  if (phase.key === "walkBack") return lerp(STORAGE_X, HOME_X, phase.progress);
+  if (phase.key === "walkToWell") return lerp(HOME_X, WELL_STAND_X, phase.progress);
+  if (phase.key === "walkToStorage") return lerp(WELL_STAND_X, STORAGE_STAND_X, phase.progress);
+  if (phase.key === "walkBack") return lerp(STORAGE_STAND_X, HOME_X, phase.progress);
   return HOME_X;
 }
 
@@ -312,23 +346,63 @@ function isCarryingWater(phase) {
   return ["raiseBucket", "walkToStorage", "waitingForRoom"].includes(phase.key) || phase.key === "pour";
 }
 
+// V5 (section 3 du cahier des charges post-bêta V4) : le fermier ne doit
+// plus rester un personnage frontal qui glisse latéralement en regardant
+// le joueur — son corps doit être orienté dans le sens réel de l'action.
+// Le puits est à gauche de la maison, la réserve à droite : l'orientation
+// se déduit donc directement de la phase, jamais d'un calcul de vitesse
+// séparé. Pendant "prepare" (répit avant de repartir vers le puits) et
+// "waitingForRoom" (bloqué juste devant la réserve), le fermier n'est pas
+// en train de se déplacer : il garde la dernière orientation réelle plutôt
+// que de revenir arbitrairement de face, jamais un flip sans raison.
+const LEFT_FACING_PHASES = new Set(["walkToWell", "lowerBucket", "wellFill", "raiseBucket", "walkBack"]);
+const RIGHT_FACING_PHASES = new Set(["walkToStorage", "pour"]);
+let lastFacing = "left"; // au tout premier rendu, "prepare" précède un départ vers le puits (gauche).
+
+function farmerFacing(phase) {
+  if (LEFT_FACING_PHASES.has(phase.key)) lastFacing = "left";
+  else if (RIGHT_FACING_PHASES.has(phase.key)) lastFacing = "right";
+  return lastFacing;
+}
+
 export function updateSceneAnimation(root, { phase, bufferRatio, truckRatio, isShipping, walking }) {
   const farmer = root.querySelector(".farmer");
+  const farmerFacingEl = root.querySelector(".farmer-facing");
   const farmerBucket = root.querySelector(".farmer-hand-bucket .farmer-bucket");
   const wellBucketRig = root.querySelector(".well-bucket-rig");
   const waitingIndicator = root.querySelector(".waiting-indicator");
   const storageFill = root.querySelector(".storage-fill");
   const truck = root.querySelector(".truck");
 
+  // V5 (section 4 du cahier des charges post-bêta V4) : la bêta Android
+  // réelle a montré le camion saccadé alors même que Playwright/headless
+  // ne détectait rien d'anormal. Cause racine trouvée en lisant le code,
+  // jamais supposée : muter l'ATTRIBUT de présentation SVG "transform" à
+  // chaque image (`setAttribute`, 60 fois/s) force un recalcul de style +
+  // une invalidation de la géométrie SVG du sous-arbre à chaque frame —
+  // un poste de calcul quasi invisible sur un desktop/headless surpuissant,
+  // mais réellement coûteux sur un GPU/CPU Android d'entrée/milieu de
+  // gamme. `el.style.transform` (propriété CSS, jamais l'attribut) suit en
+  // revanche le chemin de composition GPU standard, la même différence de
+  // performance bien connue entre muter un attribut SVG et une propriété
+  // CSS. Le fermier ET le seau du puits reçoivent le même traitement, pour
+  // ne pas réintroduire ce même risque sur eux (voir CSS : transform-box).
   const x = workerX(phase);
-  farmer.setAttribute("transform", `translate(${x}, 380)`);
-  wellBucketRig.setAttribute("transform", `translate(0, ${wellBucketOffsetY(phase)})`);
+  const facing = farmerFacing(phase);
+  farmer.style.transform = `translate(${x}px, 380px)`;
+  farmerFacingEl.style.transform = `scaleX(${facing === "left" ? -1 : 1})`;
+  wellBucketRig.style.transform = `translate(0px, ${wellBucketOffsetY(phase)}px)`;
   farmerBucket.classList.toggle("farmer-bucket-full", isCarryingWater(phase));
 
   waitingIndicator.classList.toggle("is-visible", phase.paused);
   farmer.classList.toggle("is-walking", Boolean(walking));
   farmer.classList.toggle("is-waiting", Boolean(phase.paused));
-  farmer.classList.toggle("is-working", phase.key === "lowerBucket" || phase.key === "wellFill" || phase.key === "raiseBucket" || phase.key === "pour");
+  // V5 (section 3) : remplace l'ancien hook générique ".is-working"
+  // (jamais stylé, mort) par deux poses distinctes et reconnaissables —
+  // "tire la corde au puits" vs "verse à la réserve" — jamais la même
+  // posture générique pour deux actions différentes.
+  farmer.classList.toggle("is-at-well", phase.key === "lowerBucket" || phase.key === "wellFill" || phase.key === "raiseBucket");
+  farmer.classList.toggle("is-pouring", phase.key === "pour");
 
   const fillRatio = Math.max(0, Math.min(1, bufferRatio));
   const barrelHeight = 98;
@@ -363,7 +437,7 @@ export function updateSceneAnimation(root, { phase, bufferRatio, truckRatio, isS
     arrivingNow = truckRatio >= 0.7 && truckRatio < 0.98;
     truckX = truckRatio >= 0.7 ? lerp(TRUCK_HIDDEN_X, TRUCK_DOCK_X, Math.min(1, (truckRatio - 0.7) / 0.3)) : TRUCK_HIDDEN_X;
   }
-  truck.setAttribute("transform", `translate(${truckX}, 380)`);
+  truck.style.transform = `translate(${truckX}px, 380px)`;
   truck.classList.toggle("is-docked", !departingNow && truckRatio >= 0.98);
   truck.classList.toggle("is-driving", departingNow || arrivingNow);
   // `isShipping` reste `undefined` lors des images de rendu interpolées

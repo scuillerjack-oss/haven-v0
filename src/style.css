@@ -331,6 +331,10 @@ body {
   stroke: #7a5c3a;
   stroke-width: 2;
 }
+.well-bucket-rig {
+  transform-box: view-box;
+  transform-origin: 0px 0px;
+}
 .well-bucket {
   fill: #6f7b83;
 }
@@ -397,10 +401,26 @@ body {
   stroke-width: 1.5;
   stroke-dasharray: 3 4;
 }
-/* Pas de transition CSS ici : la position du camion est déjà interpolée
-   image par image en JS (requestAnimationFrame), y compris pendant la
-   phase de départ scriptée — une transition CSS par-dessus retarderait
-   la position réellement calculée au lieu de l'aider. */
+/* V5 (section 4 du cahier des charges post-bêta V4) : cause racine réelle
+   du saut perçu sur Android — voir le commentaire de updateSceneAnimation()
+   dans scene.js. `transform-box: view-box` est nécessaire pour que
+   `el.style.transform` (désormais utilisé au lieu de l'attribut) positionne
+   le camion dans le même repère que le reste de la scène (unités du
+   viewBox), pas dans la boîte englobante par défaut du groupe.
+   Une TRÈS courte transition (110ms, largement sous le tick économique de
+   200ms et sous la phase de départ scriptée de 1100ms) sert désormais de
+   filet de sécurité contre une image sautée par le thread principal (pause
+   GC, second onglet, etc.) : le camion glisse jusqu'à la prochaine position
+   calculée au lieu de sauter brutalement dessus. Ce n'est PAS la même chose
+   qu'une transition longue : à cette durée, elle ne retarde jamais
+   perceptiblement la position réellement calculée par JS à chaque image
+   (qui continue d'arriver ~60 fois/s en fonctionnement normal), elle lisse
+   seulement les images manquées. */
+.truck {
+  transform-box: view-box;
+  transform-origin: 0px 0px;
+  transition: transform 0.11s linear;
+}
 .truck.is-driving .truck-wheel-spin {
   animation: wheel-spin 0.4s linear infinite;
 }
@@ -477,8 +497,22 @@ body {
 .farmer-bucket.farmer-bucket-full {
   fill: #3a8fc9;
 }
+/* transform-box/transform-origin : nécessaires pour que le flip gauche/
+   droite (scaleX, V5 section 3) pivote autour de l'axe vertical du
+   personnage lui-même, jamais autour du coin du viewBox. */
 .farmer {
   transition: transform 0.3s linear;
+  transform-box: view-box;
+  transform-origin: 0px 0px;
+}
+/* V5 : le flip gauche/droite est séparé de la translation (voir le
+   commentaire dans scene.js) — une transition courte (150ms) donne un
+   vrai demi-tour net, jamais un lent aplatissement qui traverserait zéro
+   pendant 300ms. */
+.farmer-facing {
+  transition: transform 0.15s ease;
+  transform-box: view-box;
+  transform-origin: 0px 0px;
 }
 
 /* Bras et jambes : le placement statique (attribut transform="translate(...)")
@@ -504,10 +538,12 @@ body {
   animation: leg-swing 0.46s ease-in-out infinite reverse;
 }
 .farmer.is-walking .farmer-arm-l {
-  animation: arm-swing-carry 0.46s ease-in-out infinite reverse;
+  animation: arm-swing 0.46s ease-in-out infinite reverse;
 }
 .farmer.is-walking .farmer-arm-r {
-  animation: arm-swing 0.46s ease-in-out infinite;
+  /* Bras porteur (seau, V5) : balancement réduit, jamais le tour complet
+     de l'autre bras (l'eau ne doit jamais paraître "voler"). */
+  animation: arm-swing-carry 0.46s ease-in-out infinite;
 }
 .farmer.is-walking .farmer-bob {
   animation: body-bob 0.46s ease-in-out infinite;
@@ -546,15 +582,25 @@ body {
   }
 }
 
+/* V5 (section 3) : un léger roulis avant/arrière à chaque pas (en plus du
+   rebond vertical déjà présent) — c'est ce petit balancement du torse,
+   bien plus que le rebond seul, qui distingue perceptuellement "marcher
+   avec de l'élan" d'un simple bond sur place. Vit sur .farmer-bob, DANS
+   .farmer-facing : le flip gauche/droite le mire donc automatiquement,
+   jamais besoin d'un signe différent selon le sens de marche. */
 @keyframes body-bob {
   0%,
-  50%,
   100% {
-    transform: translateY(0);
+    transform: translateY(0) rotate(0deg);
   }
-  25%,
+  25% {
+    transform: translateY(-1.6px) rotate(3deg);
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
   75% {
-    transform: translateY(-1.6px);
+    transform: translateY(-1.6px) rotate(-3deg);
   }
 }
 
@@ -580,6 +626,45 @@ body {
   50% {
     transform: translateY(-2px);
   }
+}
+
+/* V5 (section 3) : deux postures de travail distinctes et reconnaissables,
+   jamais la même posture générique pour deux actions différentes — l'ancien
+   hook ".is-working" ne styait rien du tout (mort). Chacune reste une pose
+   statique tenue (avec une courte transition d'entrée), jamais une
+   animation en boucle qui laisserait croire à une marche sur place.
+   idle-bob continue de bouger la tête pendant ces deux états (règle
+   ci-dessus, ": not(.is-walking)") : une petite respiration jamais
+   remplacée, jamais en conflit (elle ne touche jamais bras/torse). */
+.farmer.is-at-well .farmer-bob {
+  transform: rotate(-9deg);
+  transition: transform 0.25s ease;
+}
+.farmer.is-at-well .farmer-arm-r {
+  transform: rotate(-22deg);
+  transition: transform 0.25s ease;
+}
+.farmer.is-pouring .farmer-bob {
+  transform: rotate(7deg);
+  transition: transform 0.25s ease;
+}
+.farmer.is-pouring .farmer-arm-r {
+  transform: rotate(22deg);
+  transition: transform 0.25s ease;
+}
+/* Le geste de versement vient surtout du seau lui-même qui bascule (pas
+   seulement du bras qui s'étend) : un seau visiblement incliné est le
+   signal le plus lisible d'un "vrai geste de versement", plus net qu'une
+   rotation d'épaule seule. */
+.farmer.is-pouring .farmer-bucket {
+  transform: rotate(70deg);
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transition: transform 0.3s ease;
+}
+.farmer-bob {
+  transform-box: view-box;
+  transform-origin: 0px -20px;
 }
 
 .waiting-indicator {

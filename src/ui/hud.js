@@ -8,6 +8,7 @@ import {
   perlesEarnable,
   canRenaissance,
   perkValue,
+  perkEffect,
   RENAISSANCE_MIN_PERLES,
 } from "../engine/meta.js";
 import { getMapDefinition } from "../engine/mapDefinitions.js";
@@ -128,10 +129,13 @@ function perkCardMarkup(gameState, perkId) {
     `;
   }
   const canAfford = gameState.perles >= info.next.cost;
+  const currentValue = perkValue(gameState, perkId);
+  const effect = perkEffect(perkId, currentValue, info.next.value);
   return `
     <article class="card" data-perk="${perkId}">
       <h3>${info.def.name}</h3>
       <p class="card-current">${info.def.description}</p>
+      <p class="card-effect">${formatUpgradeEffect(effect)}</p>
       <button class="buy-btn" data-buy-perk="${perkId}" ${canAfford ? "" : "disabled"}>
         Acheter — ${info.next.cost} Perles
       </button>

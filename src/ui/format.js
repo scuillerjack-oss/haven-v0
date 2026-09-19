@@ -24,17 +24,24 @@ function formatPlainNumber(n) {
 // les durées et pourcentages — convention française usuelle des exemples
 // du cahier des charges V2. "money" (argent par litre vendu) n'a pas de
 // symbole dédié dans l'UI (voir le HUD, juste "Argent" en toutes lettres).
-const EFFECT_UNIT = { liters: " L", seconds: "s", percent: "%", money: "" };
+// "hours" (atouts méta comme "Cap hors-ligne", meta.js) : grandeur absolue,
+// jamais un pourcentage abstrait.
+const EFFECT_UNIT = { liters: " L", seconds: "s", percent: "%", money: "", hours: " h" };
 
 // Construit la ligne "valeur actuelle -> valeur suivante" à partir de
-// upgradeEffect() (mapUpgrades.js) : jamais un pourcentage abstrait seul
-// quand une grandeur concrète est disponible.
+// upgradeEffect() (mapUpgrades.js) / perkEffect() (meta.js) : jamais un
+// pourcentage abstrait seul quand une grandeur concrète est disponible. Un
+// "percent" négatif (une réduction, ex. délai ou coût en moins) garde son
+// propre signe "-" sans jamais ajouter le "+" réservé aux bonus positifs.
 export function formatUpgradeEffect(effect) {
   if (!effect) return "";
   const unit = EFFECT_UNIT[effect.kind];
-  const sign = effect.kind === "percent" ? "+" : "";
-  const currentText = `${sign}${formatPlainNumber(effect.current)}${unit}`;
-  const nextText = `${sign}${formatPlainNumber(effect.next)}${unit}`;
+  // Signe calculé par valeur (jamais une seule fois pour les deux) : un
+  // atout de réduction part d'un "current" à 0 (pas encore possédé) vers un
+  // "next" négatif — un signe unique aurait produit un impossible "+-10%".
+  const signOf = (n) => (effect.kind === "percent" && n >= 0 ? "+" : "");
+  const currentText = `${signOf(effect.current)}${formatPlainNumber(effect.current)}${unit}`;
+  const nextText = `${signOf(effect.next)}${formatPlainNumber(effect.next)}${unit}`;
   return `${currentText} → ${nextText}${effect.suffix ? ` ${effect.suffix}` : ""}`;
 }
 

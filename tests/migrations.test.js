@@ -38,7 +38,7 @@ test("une sauvegarde de la version courante avec des atouts partiellement prése
   const partial = { version: SAVE_VERSION, perks: { productionGlobal: 2 } };
   const result = migrateSave(partial);
   assert.equal(result.perks.productionGlobal, 2); // préservé, pas écrasé
-  assert.equal(result.perks.cycleSpeed, 0); // complété
+  assert.equal(result.perks.offlineCap, 0); // complété
 });
 
 test("migre une sauvegarde V1 (version 2, ancien modèle de cycle) vers le nouveau modèle outbound/return sans perdre la progression économique", () => {
@@ -70,6 +70,21 @@ test("migre une sauvegarde V1 (version 2, ancien modèle de cycle) vers le nouve
   assert.equal(migrated.maps.water.producer.awaitingRoom, false);
   assert.equal("cycleProgressMs" in migrated.maps.water.producer, false);
   assert.equal("paused" in migrated.maps.water.producer, false);
+});
+
+test("migre une sauvegarde V3 (version 3) vers V4 : rembourse « Vitesse des cycles » (supprimé) et regroupe « Cap hors-ligne » sur son unique palier", () => {
+  const v3Save = {
+    version: 3,
+    perles: 50,
+    perks: { cycleSpeed: 2, offlineCap: 3, productionGlobal: 1 },
+  };
+  const migrated = migrateSave(v3Save);
+  assert.equal(migrated.version, SAVE_VERSION);
+  // remboursé : coût cumulé des niveaux 1+2 de l'ancien "Vitesse des cycles" (8+25=33)
+  assert.equal(migrated.perles, 50 + 33);
+  assert.equal("cycleSpeed" in migrated.perks, false);
+  assert.equal(migrated.perks.offlineCap, 1); // ramené à l'unique palier, jamais perdu
+  assert.equal(migrated.perks.productionGlobal, 1); // atouts non concernés préservés
 });
 
 test("migre une sauvegarde V0 (version 1) vers une run V1 neuve, sans planter et sans supprimer les préférences audio", () => {

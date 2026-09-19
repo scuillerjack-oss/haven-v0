@@ -8,7 +8,10 @@ import {
   performRenaissance,
   RENAISSANCE_MIN_PERLES,
 } from "../src/engine/simulation.js";
-import { PERKS } from "../src/engine/meta.js";
+import { PERKS, perkEffect, perkValue } from "../src/engine/meta.js";
+import { offlineCapHours, offlineEfficiency, BASE_OFFLINE_CAP_HOURS, BASE_OFFLINE_EFFICIENCY } from "../src/engine/balance.js";
+import { getModifiers } from "../src/engine/simulation.js";
+import { formatUpgradeEffect } from "../src/ui/format.js";
 
 test("un atout refuse si les Perles manquent, accepte sinon, débite le coût exact", () => {
   const game = createInitialState(0);
@@ -86,4 +89,62 @@ test("chaque Renaissance ultérieure ajoute son propre bonus de production (le r
   performRenaissance(game);
   const after = getModifiers(game).productionMultiplier;
   assert.ok(after > before);
+});
+
+// V4 (section "ATOUTS / PERLES" du cahier des charges post-bêta V3) : plus
+// aucun texte d'atout ne doit contenir un pourcentage littéral non résolu
+// ("+X %") — la grandeur réelle vient de perkEffect(), jamais d'un texte
+// statique.
+test("aucune description d'atout ne contient un pourcentage littéral non résolu", () => {
+  for (const [id, def] of Object.entries(PERKS)) {
+    assert.doesNotMatch(def.description, /\bX\s*%/i, `${id} contient encore un "X %" littéral`);
+  }
+});
+
+test("« Vitesse des cycles » est retiré (une accélération globale aggravait le déséquilibre production/transport)", () => {
+  assert.equal("cycleSpeed" in PERKS, false);
+});
+
+test("« Cap hors-ligne » n'a plus qu'un seul palier généreux (les paliers supplémentaires n'avaient aucune utilité perceptible)", () => {
+  assert.equal(PERKS.offlineCap.levels.length, 1);
+});
+
+// La grandeur affichée par perkEffect() doit être la VRAIE valeur que le
+// moteur applique, jamais une approximation recalculée côté UI (même
+// exigence que pour upgradeEffect(), voir tests/upgrades.test.js).
+test("perkEffect() reflète exactement ce que le moteur applique pour chaque atout", () => {
+  for (const perkId of Object.keys(PERKS)) {
+    const game = createInitialState(0);
+    game.perles = 999_999;
+    const beforeValue = perkValue(game, perkId);
+    const nextLevel = PERKS[perkId].levels[0];
+    const effect = perkEffect(perkId, beforeValue, nextLevel.value);
+    assert.ok(effect, `${perkId} devrait produire un affichage d'effet`);
+
+    purchasePerk(game, perkId);
+
+    if (perkId === "productionGlobal") {
+      assert.ok(Math.abs(effect.next / 100 - (getModifiers(game).productionMultiplier - 1)) < 1e-9);
+    } else if (perkId === "storageGlobal") {
+      assert.ok(Math.abs(effect.next / 100 - (getModifiers(game).storageMultiplier - 1)) < 1e-9);
+    } else if (perkId === "logistics") {
+      assert.ok(Math.abs(-effect.next / 100 - (1 - getModifiers(game).logisticsMultiplier)) < 1e-9);
+      assert.ok(effect.next <= 0, "une réduction de délai doit s'afficher négative, jamais « +X % »");
+    } else if (perkId === "upgradeCostReduction") {
+      assert.ok(Math.abs(-effect.next / 100 - perkValue(game, "upgradeCostReduction")) < 1e-9);
+      assert.ok(effect.next <= 0, "une réduction de coût doit s'afficher négative, jamais « +X % »");
+    } else if (perkId === "offlineEfficiency") {
+      assert.ok(Math.abs(effect.next / 100 - offlineEfficiency(game, perkValue)) < 1e-9);
+    } else if (perkId === "offlineCap") {
+      assert.equal(effect.next, offlineCapHours(game, perkValue));
+      assert.equal(effect.current, BASE_OFFLINE_CAP_HOURS);
+    } else if (perkId === "perleGain") {
+      assert.equal(effect.next, nextLevel.value * 100);
+    }
+
+    // Jamais un texte cassé (double signe, "NaN", unité manquante).
+    const text = formatUpgradeEffect(effect);
+    assert.ok(text.length > 0);
+    assert.doesNotMatch(text, /\+-|-\+|NaN/);
+  }
 });

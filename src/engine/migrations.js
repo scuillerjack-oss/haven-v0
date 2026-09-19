@@ -51,9 +51,42 @@ function migrateV2ToV3(oldState) {
   return next;
 }
 
+// V4 (section "ATOUTS / PERLES" du cahier des charges post-bêta V3) retire
+// "Vitesse des cycles" (une accélération globale du cycle du fermier
+// aggravait exactement le déséquilibre production/transport corrigé
+// ailleurs en V4) et réduit "Cap hors-ligne" à un seul palier généreux.
+// Coûts figés tels qu'ils existaient en V3 (jamais recalculés depuis le
+// PERKS actuel, qui ne contient déjà plus "cycleSpeed") pour rembourser
+// exactement ce qu'un joueur a réellement payé, jamais une perte
+// silencieuse d'acquis.
+const V3_CYCLE_SPEED_LEVEL_COSTS = [8, 25, 60];
+
+function migrateV3ToV4(oldState) {
+  const next = { ...oldState, version: 4 };
+  const perks = { ...(next.perks && typeof next.perks === "object" ? next.perks : {}) };
+
+  const oldCycleSpeedLevel = typeof perks.cycleSpeed === "number" ? perks.cycleSpeed : 0;
+  if (oldCycleSpeedLevel > 0) {
+    const refund = V3_CYCLE_SPEED_LEVEL_COSTS.slice(0, oldCycleSpeedLevel).reduce((sum, cost) => sum + cost, 0);
+    next.perles = (typeof next.perles === "number" ? next.perles : 0) + refund;
+  }
+  delete perks.cycleSpeed;
+
+  // 3 paliers dégressifs -> 1 seul palier généreux : quiconque possédait déjà
+  // au moins un niveau reçoit directement ce palier, toujours un gain net
+  // (24h de plafond contre 6-14h avant), jamais besoin de remboursement.
+  if (typeof perks.offlineCap === "number" && perks.offlineCap > 1) {
+    perks.offlineCap = 1;
+  }
+
+  next.perks = perks;
+  return next;
+}
+
 export const migrations = {
   1: migrateV1ToV2,
   2: migrateV2ToV3,
+  3: migrateV3ToV4,
 };
 
 // Filet de sécurité contre les champs absents (section 22 : une

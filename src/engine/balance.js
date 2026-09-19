@@ -1,4 +1,4 @@
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const TICK_MS = 200;
 
 export const BASE_OFFLINE_CAP_HOURS = 4;

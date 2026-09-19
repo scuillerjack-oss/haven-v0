@@ -20,7 +20,6 @@ export function getModifiers(gameState) {
   const prestige = prestigeProductionMultiplier(gameState);
   return {
     productionMultiplier: (1 + perkValue(gameState, "productionGlobal")) * prestige,
-    cycleSpeedMultiplier: 1 - perkValue(gameState, "cycleSpeed"),
     storageMultiplier: 1 + perkValue(gameState, "storageGlobal"),
     logisticsMultiplier: 1 - perkValue(gameState, "logistics"),
   };

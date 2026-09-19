@@ -9,7 +9,6 @@
 
 const NEUTRAL_MODIFIERS = Object.freeze({
   productionMultiplier: 1,
-  cycleSpeedMultiplier: 1,
   storageMultiplier: 1,
   logisticsMultiplier: 1,
 });
@@ -23,11 +22,10 @@ function phaseMultiplier(familyDef, level) {
 // une seule source de vérité pour la durée de chaque phase du cycle.
 export function producerPhaseDurations(mapState, mapDef, modifiers = NEUTRAL_MODIFIERS) {
   const { phases, phaseFamily, producerUpgrades } = mapDef;
-  const speed = modifiers.cycleSpeedMultiplier ?? 1;
   return Object.entries(phases).map(([phaseKey, baseMs]) => {
     const family = phaseFamily[phaseKey];
     const mult = family ? phaseMultiplier(producerUpgrades[family], mapState.producer[`${family}Level`]) : 1;
-    return { key: phaseKey, durationMs: baseMs * mult * speed };
+    return { key: phaseKey, durationMs: baseMs * mult };
   });
 }
 

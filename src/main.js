@@ -11,7 +11,13 @@ import {
   getModifiers,
 } from "./engine/simulation.js";
 import { getMapDefinition } from "./engine/mapDefinitions.js";
-import { currentProducerPhase, bufferCapacity, transportIntervalMs, bottleneckKind } from "./engine/mapEconomy.js";
+import {
+  currentProducerPhase,
+  bufferCapacity,
+  transportIntervalMs,
+  bottleneckKind,
+  BOTTLENECK_TEXT,
+} from "./engine/mapEconomy.js";
 import { TICK_MS } from "./engine/balance.js";
 import {
   shellMarkup,
@@ -42,12 +48,6 @@ const SAVE_INTERVAL_MS = 5000;
 
 const WORKER_FAMILY_PATHS = new Set(["bucket", "movement", "winch"]);
 const TRANSPORT_PATHS = new Set(["transportCapacity", "transportFrequency"]);
-
-const BOTTLENECK_TEXT = {
-  storageFull: { title: "Stockage plein", desc: "Le travailleur attend qu'une place se libère." },
-  transport: { title: "Le transport limite le débit", desc: "La citerne est le maillon le plus juste." },
-  production: { title: "La production limite le débit", desc: "Le camion attend souvent avec de la place libre." },
-};
 
 const root = document.getElementById("app");
 root.innerHTML = shellMarkup();

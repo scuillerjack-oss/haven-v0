@@ -1,0 +1,1017 @@
+{
+  "producerOnly": {
+    "name": "producerOnly",
+    "firstTransportKindAt": 456000,
+    "firstStorageFullAt": 636000,
+    "macroSequence": [
+      {
+        "atMs": 1000,
+        "kind": "production"
+      },
+      {
+        "atMs": 456000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 636000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 637000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 648000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 649000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 654000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 661000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 671000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 673000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 683000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 685000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 690000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 697000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 707000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 709000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 719000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 721000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 726000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 733000,
+        "kind": "transport"
+      }
+    ],
+    "macroSequenceTotalCount": 1337,
+    "checkpointResults": [
+      {
+        "atMs": 300000,
+        "money": 8,
+        "totalLitersShipped": 49,
+        "levels": {
+          "bucket": 4,
+          "movement": 4,
+          "winch": 3,
+          "well": 3,
+          "buffer": 1,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 1
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 600000,
+        "money": 19,
+        "totalLitersShipped": 141,
+        "levels": {
+          "bucket": 5,
+          "movement": 6,
+          "winch": 5,
+          "well": 4,
+          "buffer": 1,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 1
+        },
+        "kind": "transport"
+      },
+      {
+        "atMs": 1200000,
+        "money": 47,
+        "totalLitersShipped": 341,
+        "levels": {
+          "bucket": 5,
+          "movement": 8,
+          "winch": 6,
+          "well": 6,
+          "buffer": 1,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 2
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 1800000,
+        "money": 29,
+        "totalLitersShipped": 541,
+        "levels": {
+          "bucket": 6,
+          "movement": 8,
+          "winch": 7,
+          "well": 7,
+          "buffer": 1,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 3
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3600000,
+        "money": 191,
+        "totalLitersShipped": 1141,
+        "levels": {
+          "bucket": 8,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 1,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 4
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 7200000,
+        "money": 1875,
+        "totalLitersShipped": 2341,
+        "levels": {
+          "bucket": 9,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 1,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 5
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 10800000,
+        "money": 744,
+        "totalLitersShipped": 3528,
+        "levels": {
+          "bucket": 10,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 1,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 6
+        },
+        "kind": "storageFull"
+      }
+    ],
+    "reachedMaxMsWithoutStall": false
+  },
+  "producerFirst": {
+    "name": "producerFirst",
+    "firstTransportKindAt": 2151000,
+    "firstStorageFullAt": 3157000,
+    "macroSequence": [
+      {
+        "atMs": 1000,
+        "kind": "production"
+      },
+      {
+        "atMs": 2151000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 2505000,
+        "kind": "production"
+      },
+      {
+        "atMs": 2661000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3157000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3160000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3165000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3166000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3171000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3172000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3174000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3178000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3183000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3184000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3189000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3190000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3192000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3196000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3201000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3202000,
+        "kind": "transport"
+      }
+    ],
+    "macroSequenceTotalCount": 2541,
+    "checkpointResults": [
+      {
+        "atMs": 300000,
+        "money": 4,
+        "totalLitersShipped": 47,
+        "levels": {
+          "bucket": 3,
+          "movement": 4,
+          "winch": 3,
+          "well": 3,
+          "buffer": 2,
+          "transportCapacity": 2,
+          "transportFrequency": 2,
+          "globalProductivity": 1
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 600000,
+        "money": 6,
+        "totalLitersShipped": 121,
+        "levels": {
+          "bucket": 4,
+          "movement": 5,
+          "winch": 4,
+          "well": 4,
+          "buffer": 4,
+          "transportCapacity": 2,
+          "transportFrequency": 4,
+          "globalProductivity": 1
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 1200000,
+        "money": 41,
+        "totalLitersShipped": 369,
+        "levels": {
+          "bucket": 5,
+          "movement": 7,
+          "winch": 6,
+          "well": 5,
+          "buffer": 5,
+          "transportCapacity": 3,
+          "transportFrequency": 6,
+          "globalProductivity": 2
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 1800000,
+        "money": 3,
+        "totalLitersShipped": 804,
+        "levels": {
+          "bucket": 6,
+          "movement": 8,
+          "winch": 7,
+          "well": 7,
+          "buffer": 6,
+          "transportCapacity": 4,
+          "transportFrequency": 8,
+          "globalProductivity": 3
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 3600000,
+        "money": 1494,
+        "totalLitersShipped": 3497,
+        "levels": {
+          "bucket": 9,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 7,
+          "transportFrequency": 8,
+          "globalProductivity": 5
+        },
+        "kind": "transport"
+      },
+      {
+        "atMs": 7200000,
+        "money": 280,
+        "totalLitersShipped": 11428,
+        "levels": {
+          "bucket": 11,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 8,
+          "transportFrequency": 8,
+          "globalProductivity": 8
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 10800000,
+        "money": 22644,
+        "totalLitersShipped": 20026,
+        "levels": {
+          "bucket": 12,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 8,
+          "transportFrequency": 8,
+          "globalProductivity": 8
+        },
+        "kind": "storageFull"
+      }
+    ],
+    "reachedMaxMsWithoutStall": false
+  },
+  "neverBuysTruck": {
+    "name": "neverBuysTruck",
+    "firstTransportKindAt": 552000,
+    "firstStorageFullAt": 828000,
+    "macroSequence": [
+      {
+        "atMs": 1000,
+        "kind": "production"
+      },
+      {
+        "atMs": 552000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 828000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 829000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 838000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 841000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 845000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 853000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 862000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 865000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 874000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 877000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 881000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 889000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 898000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 901000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 910000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 913000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 917000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 925000,
+        "kind": "transport"
+      }
+    ],
+    "macroSequenceTotalCount": 1373,
+    "checkpointResults": [
+      {
+        "atMs": 300000,
+        "money": 7,
+        "totalLitersShipped": 49,
+        "levels": {
+          "bucket": 3,
+          "movement": 4,
+          "winch": 3,
+          "well": 3,
+          "buffer": 3,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 1
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 600000,
+        "money": 1,
+        "totalLitersShipped": 133,
+        "levels": {
+          "bucket": 4,
+          "movement": 6,
+          "winch": 5,
+          "well": 4,
+          "buffer": 4,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 1
+        },
+        "kind": "transport"
+      },
+      {
+        "atMs": 1200000,
+        "money": 17,
+        "totalLitersShipped": 332,
+        "levels": {
+          "bucket": 5,
+          "movement": 7,
+          "winch": 6,
+          "well": 6,
+          "buffer": 5,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 2
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 1800000,
+        "money": 57,
+        "totalLitersShipped": 532,
+        "levels": {
+          "bucket": 6,
+          "movement": 8,
+          "winch": 7,
+          "well": 6,
+          "buffer": 6,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 2
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3600000,
+        "money": 234,
+        "totalLitersShipped": 1132,
+        "levels": {
+          "bucket": 7,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 7,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 4
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 7200000,
+        "money": 585,
+        "totalLitersShipped": 2332,
+        "levels": {
+          "bucket": 9,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 5
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 10800000,
+        "money": 3207,
+        "totalLitersShipped": 3532,
+        "levels": {
+          "bucket": 9,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 6
+        },
+        "kind": "storageFull"
+      }
+    ],
+    "reachedMaxMsWithoutStall": false
+  },
+  "neverBuysTruckThenCatchUp": {
+    "name": "neverBuysTruckThenCatchUp",
+    "firstTransportKindAt": 552000,
+    "firstStorageFullAt": 828000,
+    "macroSequence": [
+      {
+        "atMs": 1000,
+        "kind": "production"
+      },
+      {
+        "atMs": 552000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 828000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 829000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 838000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 841000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 845000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 853000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 862000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 865000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 874000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 877000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 881000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 889000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 898000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 901000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 910000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 913000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 917000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 925000,
+        "kind": "transport"
+      }
+    ],
+    "macroSequenceTotalCount": 2624,
+    "checkpointResults": [
+      {
+        "atMs": 300000,
+        "money": 7,
+        "totalLitersShipped": 49,
+        "levels": {
+          "bucket": 3,
+          "movement": 4,
+          "winch": 3,
+          "well": 3,
+          "buffer": 3,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 1
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 600000,
+        "money": 1,
+        "totalLitersShipped": 133,
+        "levels": {
+          "bucket": 4,
+          "movement": 6,
+          "winch": 5,
+          "well": 4,
+          "buffer": 4,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 1
+        },
+        "kind": "transport"
+      },
+      {
+        "atMs": 1200000,
+        "money": 17,
+        "totalLitersShipped": 332,
+        "levels": {
+          "bucket": 5,
+          "movement": 7,
+          "winch": 6,
+          "well": 6,
+          "buffer": 5,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 2
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 1800000,
+        "money": 57,
+        "totalLitersShipped": 532,
+        "levels": {
+          "bucket": 6,
+          "movement": 8,
+          "winch": 7,
+          "well": 6,
+          "buffer": 6,
+          "transportCapacity": 1,
+          "transportFrequency": 1,
+          "globalProductivity": 2
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3600000,
+        "money": 458,
+        "totalLitersShipped": 1995,
+        "levels": {
+          "bucket": 8,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 6,
+          "transportFrequency": 8,
+          "globalProductivity": 4
+        },
+        "kind": "transport"
+      },
+      {
+        "atMs": 7200000,
+        "money": 2616,
+        "totalLitersShipped": 9583,
+        "levels": {
+          "bucket": 11,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 8,
+          "transportFrequency": 8,
+          "globalProductivity": 7
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 10800000,
+        "money": 12170,
+        "totalLitersShipped": 18181,
+        "levels": {
+          "bucket": 12,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 8,
+          "transportFrequency": 8,
+          "globalProductivity": 8
+        },
+        "kind": "transport"
+      }
+    ],
+    "reachedMaxMsWithoutStall": false
+  },
+  "greedy": {
+    "name": "greedy",
+    "firstTransportKindAt": 2172000,
+    "firstStorageFullAt": 3173000,
+    "macroSequence": [
+      {
+        "atMs": 1000,
+        "kind": "production"
+      },
+      {
+        "atMs": 2172000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 2526000,
+        "kind": "production"
+      },
+      {
+        "atMs": 2682000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3173000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3175000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3180000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3181000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3186000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3187000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3189000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3193000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3198000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3199000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3204000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3205000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3207000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3211000,
+        "kind": "transport"
+      },
+      {
+        "atMs": 3216000,
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 3217000,
+        "kind": "transport"
+      }
+    ],
+    "macroSequenceTotalCount": 2535,
+    "checkpointResults": [
+      {
+        "atMs": 300000,
+        "money": 4,
+        "totalLitersShipped": 47,
+        "levels": {
+          "bucket": 3,
+          "movement": 4,
+          "winch": 3,
+          "well": 3,
+          "buffer": 2,
+          "transportCapacity": 2,
+          "transportFrequency": 2,
+          "globalProductivity": 1
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 600000,
+        "money": 6,
+        "totalLitersShipped": 121,
+        "levels": {
+          "bucket": 4,
+          "movement": 5,
+          "winch": 4,
+          "well": 4,
+          "buffer": 4,
+          "transportCapacity": 2,
+          "transportFrequency": 4,
+          "globalProductivity": 1
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 1200000,
+        "money": 22,
+        "totalLitersShipped": 369,
+        "levels": {
+          "bucket": 5,
+          "movement": 7,
+          "winch": 6,
+          "well": 5,
+          "buffer": 5,
+          "transportCapacity": 4,
+          "transportFrequency": 6,
+          "globalProductivity": 1
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 1800000,
+        "money": 112,
+        "totalLitersShipped": 806,
+        "levels": {
+          "bucket": 6,
+          "movement": 8,
+          "winch": 7,
+          "well": 7,
+          "buffer": 6,
+          "transportCapacity": 4,
+          "transportFrequency": 8,
+          "globalProductivity": 2
+        },
+        "kind": "production"
+      },
+      {
+        "atMs": 3600000,
+        "money": 1381,
+        "totalLitersShipped": 3483,
+        "levels": {
+          "bucket": 9,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 7,
+          "transportFrequency": 8,
+          "globalProductivity": 5
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 7200000,
+        "money": 358,
+        "totalLitersShipped": 11614,
+        "levels": {
+          "bucket": 11,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 8,
+          "transportFrequency": 8,
+          "globalProductivity": 8
+        },
+        "kind": "storageFull"
+      },
+      {
+        "atMs": 10800000,
+        "money": 22723,
+        "totalLitersShipped": 20212,
+        "levels": {
+          "bucket": 12,
+          "movement": 8,
+          "winch": 7,
+          "well": 8,
+          "buffer": 8,
+          "transportCapacity": 8,
+          "transportFrequency": 8,
+          "globalProductivity": 8
+        },
+        "kind": "storageFull"
+      }
+    ],
+    "reachedMaxMsWithoutStall": false
+  }
+}

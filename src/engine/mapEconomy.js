@@ -269,6 +269,28 @@ export function bottleneckKind(mapState, mapDef, modifiers = NEUTRAL_MODIFIERS) 
   return "production";
 }
 
+// V4 (section "ÉQUILIBRAGE" du cahier des charges post-bêta V3) : une
+// simulation de séquences d'achats réalistes biaisées (voir
+// scripts/simulate-v4-realistic.mjs) a mis en évidence la cause exacte du
+// défaut ressenti en bêta — un joueur pouvait investir uniquement dans le
+// fermier (seau/déplacement/corde-treuil/puits/rendement de vente) et voir
+// son argent progresser quand même (le rendement de vente augmente le prix
+// par litre vendu quel que soit le débit), tout en restant en permanence en
+// "storageFull". Le SEUL message qu'il voyait alors ("Stockage plein : le
+// travailleur attend") ne nommait jamais la citerne — un joueur suivant ce
+// texte à la lettre achetait donc plutôt du STOCKAGE, qui ne fait que
+// retarder la saturation sans jamais la résoudre (la citerne reste sous-
+// dimensionnée). Chaque message doit maintenant nommer le levier qui
+// résout réellement le goulot, jamais seulement décrire l'état visible.
+export const BOTTLENECK_TEXT = {
+  storageFull: {
+    title: "Stockage plein : le camion ne suit plus",
+    desc: "Le fermier attend qu'une place se libère : améliore la citerne (capacité ou fréquence), le stockage ne fait que retarder le problème.",
+  },
+  transport: { title: "Le transport limite le débit", desc: "La citerne est le maillon le plus juste." },
+  production: { title: "La production limite le débit", desc: "Le camion attend souvent avec de la place libre." },
+};
+
 export function progressRatio(mapState, mapDef) {
   return Math.min(1, mapState.totalLitersShipped / mapDef.mapCompleteLitersShipped);
 }

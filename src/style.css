@@ -700,30 +700,111 @@ body {
   gap: 6px;
 }
 
-/* Pictogrammes V3 (section 6) : une forme par famille, plus une pièce
-   à côté de l'argent — formes SVG plates, aucune image téléchargée. */
+/* Pictogrammes V4 (section 10 du cahier des charges V4) : miniatures
+   colorées cohérentes avec la scène — mêmes teintes que le puits, le
+   tonneau, le camion et le fermier, jamais un simple contour monochrome. */
 .family-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
 }
-.family-icon .icon-shape {
-  fill: var(--accent-soft);
+
+.icon-bucket-body {
+  fill: #7d8890;
+  stroke: #4a4038;
+  stroke-width: 0.6;
 }
-.family-icon .icon-shape-top {
-  fill: var(--accent);
+.icon-bucket-water {
+  fill: #3a8fc9;
 }
-.family-icon .icon-line {
-  stroke: var(--accent-soft);
+.icon-bucket-handle {
+  fill: none;
+  stroke: #4a4038;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+
+.icon-farmer-skin {
+  fill: #e8b98a;
+}
+.icon-farmer-body-line,
+.icon-farmer-limb {
+  stroke: #3f6f92;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.icon-winch-wheel {
+  fill: #a4573f;
+}
+.icon-winch-rim {
+  fill: none;
+  stroke: #7a3f2c;
+  stroke-width: 1;
+}
+.icon-winch-axle {
+  fill: #5c5347;
+}
+.icon-winch-rope {
+  stroke: #7a5c3a;
   stroke-width: 1.4;
   stroke-linecap: round;
 }
-.family-icon .icon-line-bold {
-  stroke: var(--accent-soft);
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  fill: var(--accent-soft);
+
+.icon-well-stones {
+  fill: #a89578;
 }
+.icon-well-mouth {
+  fill: #17414f;
+}
+.icon-well-beam {
+  stroke: #7a5c3a;
+  stroke-width: 1.6;
+}
+.icon-well-roof {
+  fill: #a4573f;
+}
+
+.icon-barrel-body {
+  fill: #c99a63;
+  stroke: #7a5c3a;
+  stroke-width: 0.8;
+}
+.icon-barrel-ring {
+  fill: #5c4529;
+}
+.icon-barrel-drop {
+  fill: #3a8fc9;
+}
+
+.icon-truck-tank {
+  fill: #c7d2d9;
+  stroke: #8a97a0;
+  stroke-width: 0.6;
+}
+.icon-truck-cab {
+  fill: #3a6a8a;
+}
+.icon-truck-wheel {
+  fill: #22201d;
+}
+
+.icon-clock-face {
+  fill: #f6ecd8;
+}
+.icon-clock-rim {
+  fill: none;
+  stroke: #7a5c3a;
+  stroke-width: 1.2;
+}
+.icon-clock-hands {
+  fill: none;
+  stroke: #4a4038;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
 .icon-coin {
   width: 20px;
   height: 20px;

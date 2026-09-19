@@ -12,8 +12,8 @@
 
 const HOME_X = 150;
 const WELL_X = 70;
-const STORAGE_X = 230;
-const TRUCK_DOCK_X = 300;
+const STORAGE_X = 210;
+const TRUCK_DOCK_X = 290;
 const TRUCK_HIDDEN_X = 420;
 // Durée réelle (ms) de la phase de départ scriptée du camion — voir le
 // commentaire détaillé dans updateSceneAnimation().
@@ -24,14 +24,38 @@ export function sceneMarkup() {
   return `
     <svg class="haven-scene" viewBox="0 0 400 520" role="img" aria-label="La chaîne de l'eau" preserveAspectRatio="xMidYMax slice">
       <defs>
+        <!-- Ciel chaleureux (fin d'après-midi, cohérent avec la référence
+             visuelle validée), pas un simple dégradé pâle : plus profond en
+             haut, un ton doré vers l'horizon. -->
         <linearGradient id="sky-gradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#bfe3f2" />
-          <stop offset="55%" stop-color="#dff0e0" />
-          <stop offset="100%" stop-color="#eef6dd" />
+          <stop offset="0%" stop-color="#7ec4e8" />
+          <stop offset="55%" stop-color="#cfe6c0" />
+          <stop offset="100%" stop-color="#f6e6b8" />
         </linearGradient>
         <linearGradient id="lake-gradient" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#a9d8e6" />
-          <stop offset="100%" stop-color="#8dc3d8" />
+          <stop offset="100%" stop-color="#7fb6d0" />
+        </linearGradient>
+        <linearGradient id="mountain-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#a7bdd4" />
+          <stop offset="100%" stop-color="#8497ae" />
+        </linearGradient>
+        <!-- Volume/matière des 3 éléments "héros" : jamais un simple aplat,
+             un dégradé clair->ombré simule une source de lumière cohérente
+             (haut à gauche), seule concession "3D" raisonnable en SVG pur. -->
+        <linearGradient id="well-stone-gradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#bcaa8a" />
+          <stop offset="100%" stop-color="#8f7c5e" />
+        </linearGradient>
+        <linearGradient id="barrel-gradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#dcae74" />
+          <stop offset="55%" stop-color="#c99a63" />
+          <stop offset="100%" stop-color="#a9793f" />
+        </linearGradient>
+        <linearGradient id="truck-tank-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#eef3f6" />
+          <stop offset="45%" stop-color="#c7d2d9" />
+          <stop offset="100%" stop-color="#98a7b2" />
         </linearGradient>
         <clipPath id="storage-clip">
           <rect x="-30" y="-96" width="60" height="98" />
@@ -49,15 +73,25 @@ export function sceneMarkup() {
         <path class="mountain mountain-front" d="M180 200 L245 120 L310 200 Z" />
         <path class="mountain mountain-front" d="M270 205 L330 130 L400 205 L400 210 L270 210 Z" />
 
-        <ellipse class="lake" cx="200" cy="222" rx="120" ry="20" />
-        <path class="lake-shine" d="M120 222 Q160 216 200 222 T280 222" />
+        <ellipse class="lake" cx="200" cy="222" rx="130" ry="22" />
+        <path class="lake-shine" d="M110 222 Q160 215 200 222 T290 222" />
 
-        <g class="village" transform="translate(200, 196)">
+        <!-- Petit pont de pierre reliant le village au premier plan : le
+             détail exact qui, sur la référence, transforme "un lac" en
+             "un lac que l'on reconnaît, avec de la vie autour". -->
+        <g class="bridge" transform="translate(200, 213)">
+          <rect x="-24" y="-5" width="48" height="7" class="bridge-deck" />
+          <path d="M-16 2 a6 6 0 0 0 12 0 Z" class="bridge-arch" />
+          <path d="M4 2 a6 6 0 0 0 12 0 Z" class="bridge-arch" />
+        </g>
+
+        <g class="village" transform="translate(200, 194) scale(1.3)">
           <path class="village-hill" d="M-70 20 Q0 -6 70 20 Z" />
-          <g class="village-house" transform="translate(-28,10)"><rect x="-5" y="-8" width="10" height="8" /><polygon points="-6,-8 6,-8 0,-14" /></g>
-          <g class="village-house" transform="translate(-8,13)"><rect x="-4" y="-6" width="8" height="6" /><polygon points="-5,-6 5,-6 0,-11" /></g>
-          <g class="village-house village-house-spire" transform="translate(14,9)"><rect x="-4" y="-11" width="8" height="11" /><polygon points="-4,-11 4,-11 0,-19" /></g>
-          <g class="village-house" transform="translate(34,13)"><rect x="-4" y="-6" width="8" height="6" /><polygon points="-5,-6 5,-6 0,-11" /></g>
+          <g class="village-house" transform="translate(-40,11)"><rect x="-5" y="-8" width="10" height="8" /><polygon points="-6,-8 6,-8 0,-14" /></g>
+          <g class="village-house" transform="translate(-22,13)"><rect x="-4" y="-6" width="8" height="6" /><polygon points="-5,-6 5,-6 0,-11" /></g>
+          <g class="village-house village-house-spire" transform="translate(-2,9)"><rect x="-4" y="-11" width="8" height="11" /><polygon points="-4,-11 4,-11 0,-19" /></g>
+          <g class="village-house" transform="translate(16,13)"><rect x="-4" y="-6" width="8" height="6" /><polygon points="-5,-6 5,-6 0,-11" /></g>
+          <g class="village-house" transform="translate(34,11)"><rect x="-4" y="-7" width="9" height="7" /><polygon points="-5,-7 5,-7 0,-12" /></g>
         </g>
 
         <path class="hill hill-back" d="M0 258 Q100 175 220 210 T400 190 L400 380 L0 380 Z" />
@@ -90,7 +124,7 @@ export function sceneMarkup() {
       <g class="hedge" aria-hidden="true">
         <g class="flower" transform="translate(140,392)"><circle r="3" class="flower-petal" /><circle cx="4" cy="-1" r="3" class="flower-petal" /><circle cx="-1" cy="-4" r="3" class="flower-petal" /><circle r="1.4" class="flower-center" /></g>
         <g class="flower" transform="translate(165,396)"><circle r="3" class="flower-petal" /><circle cx="4" cy="-1" r="3" class="flower-petal" /><circle cx="-1" cy="-4" r="3" class="flower-petal" /><circle r="1.4" class="flower-center" /></g>
-        <g class="chicken" transform="translate(196,378)">
+        <g class="chicken" transform="translate(168,378)">
           <ellipse cx="0" cy="-6" rx="9" ry="7" class="chicken-body" />
           <circle cx="8" cy="-14" r="4" class="chicken-head" />
           <polygon points="12,-14 17,-13 12,-11" class="chicken-beak" />
@@ -109,6 +143,18 @@ export function sceneMarkup() {
         <ellipse cx="0" cy="4" rx="38" ry="11" class="well-shadow" />
         <ellipse cx="0" cy="0" rx="34" ry="10" class="well-rim-base" />
         <rect x="-30" y="-38" width="60" height="38" class="well-stones" />
+        <!-- Traits de joints de pierre : évite l'aplat uniforme, quelques
+             lignes suffisent à suggérer un vrai appareillage en pierre. -->
+        <g class="well-stone-line">
+          <line x1="-30" y1="-25" x2="30" y2="-25" />
+          <line x1="-30" y1="-12" x2="30" y2="-12" />
+          <line x1="-15" y1="-38" x2="-15" y2="-25" />
+          <line x1="10" y1="-38" x2="10" y2="-25" />
+          <line x1="-8" y1="-25" x2="-8" y2="-12" />
+          <line x1="18" y1="-25" x2="18" y2="-12" />
+          <line x1="-20" y1="-12" x2="-20" y2="0" />
+          <line x1="5" y1="-12" x2="5" y2="0" />
+        </g>
         <ellipse cx="0" cy="-38" rx="28" ry="8" class="well-mouth" />
         <ellipse cx="0" cy="-36" rx="20" ry="5" class="well-water" />
 
@@ -145,16 +191,27 @@ export function sceneMarkup() {
         <rect x="-46" y="-44" width="70" height="30" rx="8" class="truck-tank" />
         <rect x="-46" y="-40" width="70" height="6" class="truck-tank-band" />
         <path d="M-46 -44 a35 22 0 0 1 0 30" class="truck-tank-cap" />
-        <rect x="20" y="-30" width="26" height="24" rx="3" class="truck-cab" />
-        <rect x="24" y="-27" width="12" height="10" rx="1" class="truck-window" />
+        <rect x="20" y="-30" width="16" height="24" rx="3" class="truck-cab" />
+        <rect x="23" y="-27" width="8" height="10" rx="1" class="truck-window" />
+        <!-- Échelle latérale : petit détail qui fait immédiatement
+             reconnaître "camion-citerne" plutôt qu'un simple camion. -->
+        <g class="truck-ladder">
+          <line x1="-10" y1="-44" x2="-10" y2="-14" />
+          <line x1="-4" y1="-44" x2="-4" y2="-14" />
+          <line x1="-10" y1="-38" x2="-4" y2="-38" />
+          <line x1="-10" y1="-28" x2="-4" y2="-28" />
+          <line x1="-10" y1="-18" x2="-4" y2="-18" />
+        </g>
         <rect x="-48" y="-16" width="98" height="6" class="truck-chassis" />
         <g class="truck-wheel-group" transform="translate(-26,-2)">
           <circle r="9" class="truck-wheel" />
           <circle r="9" class="truck-wheel-spin" />
+          <circle r="3.5" class="truck-wheel-hub" />
         </g>
         <g class="truck-wheel-group" transform="translate(30,-2)">
           <circle r="9" class="truck-wheel" />
           <circle r="9" class="truck-wheel-spin" />
+          <circle r="3.5" class="truck-wheel-hub" />
         </g>
       </g>
 
@@ -163,8 +220,14 @@ export function sceneMarkup() {
       <g class="farmer" transform="translate(${HOME_X}, 380)">
         <g class="farmer-bob">
           <g class="farmer-hip" transform="translate(0, -20)">
-            <g class="farmer-leg farmer-leg-l"><line x1="0" y1="0" x2="-7" y2="19" class="farmer-limb farmer-limb-leg" /></g>
-            <g class="farmer-leg farmer-leg-r"><line x1="0" y1="0" x2="7" y2="19" class="farmer-limb farmer-limb-leg" /></g>
+            <g class="farmer-leg farmer-leg-l">
+              <line x1="0" y1="0" x2="-7" y2="19" class="farmer-limb farmer-limb-leg" />
+              <circle cx="-7" cy="19" r="2.6" class="farmer-shoe" />
+            </g>
+            <g class="farmer-leg farmer-leg-r">
+              <line x1="0" y1="0" x2="7" y2="19" class="farmer-limb farmer-limb-leg" />
+              <circle cx="7" cy="19" r="2.6" class="farmer-shoe" />
+            </g>
           </g>
 
           <path d="M-11 -44 Q-13 -16 -11 -8 L11 -8 Q13 -16 11 -44 Q0 -50 -11 -44 Z" class="farmer-body" />
@@ -178,10 +241,18 @@ export function sceneMarkup() {
                 <rect x="-6" y="-5" width="12" height="9" rx="1.5" class="farmer-bucket" />
               </g>
             </g>
-            <g class="farmer-arm farmer-arm-r"><line x1="0" y1="0" x2="10" y2="11" class="farmer-limb farmer-limb-arm" /></g>
+            <g class="farmer-arm farmer-arm-r">
+              <line x1="0" y1="0" x2="10" y2="11" class="farmer-limb farmer-limb-arm" />
+              <circle cx="10" cy="11" r="2.2" class="farmer-hand" />
+            </g>
           </g>
 
           <circle cx="0" cy="-52" r="8.5" class="farmer-head" />
+          <!-- Petit visage : deux yeux suffisent à donner du caractère,
+               jamais un visage détaillé qui ne resterait pas lisible à
+               l'échelle mobile. -->
+          <circle cx="-3" cy="-52" r="1" class="farmer-eye" />
+          <circle cx="3" cy="-52" r="1" class="farmer-eye" />
           <path d="M-6 -59 Q-6 -68 0 -68 Q6 -68 6 -59 Z" class="farmer-hat-top" />
           <ellipse cx="0" cy="-59" rx="11.5" ry="3" class="farmer-hat-brim" />
         </g>

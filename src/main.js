@@ -211,7 +211,22 @@ function renderScene() {
   const moneyFromShip = lastTickResult?.perMap?.[state.currentMapId]?.moneyEarned ?? 0;
 
   if (shipped > 0) {
-    updateSceneAnimation(els.sceneRoot, { phase, isShipping: true });
+    // Toujours fournir bufferRatio/truckRatio/walking ici, jamais undefined :
+    // sinon Math.min(1, undefined) produit NaN dans updateSceneAnimation et
+    // corrompt brièvement le remplissage de la réserve le temps qu'une image
+    // rAF vienne corriger (voir le diagnostic du saut du camion ci-dessus,
+    // même famille de piège).
+    const capacity = bufferCapacity(mapState, mapDef, modifiers);
+    const bufferRatio = capacity > 0 ? mapState.buffer.currentLiters / capacity : 0;
+    const intervalMs = transportIntervalMs(mapState, mapDef, modifiers);
+    const truckRatio = intervalMs > 0 ? mapState.transport.timerMs / intervalMs : 0;
+    updateSceneAnimation(els.sceneRoot, {
+      phase,
+      bufferRatio,
+      truckRatio,
+      isShipping: true,
+      walking: !phase.paused && (phase.key === "walkToWell" || phase.key === "walkToStorage" || phase.key === "walkBack"),
+    });
     spawnFloater(`+${formatNumber(moneyFromShip)}`);
   }
 

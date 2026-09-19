@@ -206,10 +206,10 @@ async function main() {
           log(`OK largeur ${width}px : pleine largeur, aucun débordement`);
         }
 
-        // Décor de campagne (V3, section 6) : purement décoratif, mais
-        // encore faut-il qu'il reste dans le cadre visible (recadrage
-        // horizontal du "slice" sur viewBox) à chaque largeur testée —
-        // pas seulement à celle utilisée pendant le développement.
+        // Décor de campagne (V3 section 6, redessiné en V4) : purement
+        // décoratif, mais encore faut-il qu'il reste dans le cadre visible
+        // (recadrage horizontal du "slice" sur viewBox) à chaque largeur
+        // testée — pas seulement à celle utilisée pendant le développement.
         const scenery = await page.evaluate(() => {
           const svgRect = document.querySelector(".haven-scene").getBoundingClientRect();
           const within = (sel) => {
@@ -218,9 +218,17 @@ async function main() {
             const r = el.getBoundingClientRect();
             return r.left >= svgRect.left - 1 && r.right <= svgRect.right + 1 && r.width > 0;
           };
-          return { cabin: within(".cabin"), tree: within(".tree:not(.tree-small)"), treeSmall: within(".tree-small") };
+          return {
+            village: within(".village"),
+            tree: within(".tree:not(.tree-small)"),
+            treeSmall: within(".tree-small"),
+            signpost: within(".signpost"),
+            chicken: within(".chicken"),
+            cart: within(".cart"),
+          };
         });
-        if (!scenery.cabin || !scenery.tree || !scenery.treeSmall) {
+        const sceneryOk = Object.values(scenery).every(Boolean);
+        if (!sceneryOk) {
           failures += 1;
           log(`ÉCHEC largeur ${width}px : décor de campagne recadré hors du cadre visible`, scenery);
         } else {

@@ -113,48 +113,125 @@ body {
   display: block;
 }
 
+/* V4 (rupture visuelle post-bêta V3) : la scène passe d'un intérieur
+   sombre à une vraie campagne de plein jour, cohérente avec la
+   référence visuelle validée — seul le chrome du HUD (topbar/tiroir)
+   reste sombre/vert, exactement comme sur la référence. */
 .scene-sky {
-  fill: var(--sky-color);
+  fill: url(#sky-gradient);
 }
 
 .scene-ground {
-  fill: var(--ground-color);
+  fill: #a97c4f;
 }
 
-/* Décor de campagne (V3, section 6) : palette dérivée des couleurs déjà
-   en place (sky/ground/accent), jamais de nouvelles teintes criardes qui
-   détonneraient avec l'interface sombre/verte existante. */
+.scene-path {
+  fill: #c99a63;
+  opacity: 0.6;
+}
+
+/* Arrière-plan : montagnes, lac, village, collines, arbres, panneau —
+   purement décoratif et statique, jamais superposé aux éléments
+   fonctionnels (zone garantie libre au-dessus de y=260, entre x=85 et
+   x=315 — vérifié par mesure réelle des rendus, voir check-mobile-resume.mjs). */
+.mountain-back {
+  fill: #9fb4c9;
+  opacity: 0.75;
+}
+.mountain-front {
+  fill: #8aa6bd;
+}
+.lake {
+  fill: url(#lake-gradient);
+}
+.lake-shine {
+  fill: none;
+  stroke: #eaf6fa;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+.village-hill {
+  fill: #6f9b5e;
+}
+.village-house rect {
+  fill: #d8c4a0;
+}
+.village-house polygon {
+  fill: #a4573f;
+}
+.village-house-spire polygon {
+  fill: #7d4a6b;
+}
 .hill-back {
-  fill: #223530;
+  fill: #7fae63;
 }
 .hill-front {
-  fill: #2b4038;
+  fill: #6a9c53;
 }
-.scene-path {
-  fill: #6b5942;
-  opacity: 0.55;
+.signpost-pole {
+  fill: #7a5c3a;
 }
-.cabin-wall {
-  fill: #4a3d2e;
+.signpost-board {
+  fill: #caa06a;
+  stroke: #7a5c3a;
+  stroke-width: 1.5;
 }
-.cabin-roof {
-  fill: #2e4a3d;
-}
-.cabin-door,
-.cabin-window {
-  fill: #1a2321;
-}
-.cabin-chimney {
-  fill: #3d3226;
+.signpost-leaf {
+  fill: #5f9a4d;
 }
 .tree-trunk {
-  fill: #4a3d2e;
+  fill: #7a5c3a;
 }
 .tree-canopy {
-  fill: #2f5240;
+  fill: #4f9146;
 }
 .tree-small .tree-canopy {
-  fill: #294a3a;
+  fill: #45813e;
+}
+
+/* Haie/bordure vivante : fleurs, poule, charrette. */
+.flower-petal {
+  fill: #f4a8c0;
+}
+.flower-center {
+  fill: #f2c94c;
+}
+.chicken-body,
+.chicken-head {
+  fill: #f6ecd8;
+}
+.chicken-beak,
+.chicken-comb {
+  fill: none;
+}
+.chicken-beak {
+  fill: #e0902f;
+}
+.chicken-comb {
+  stroke: #d1483f;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+}
+.chicken-leg {
+  stroke: #e0902f;
+  stroke-width: 1.4;
+}
+.cart-bed {
+  fill: #8a6a45;
+  stroke: #5c4529;
+  stroke-width: 1.5;
+}
+.cart-handle {
+  stroke: #5c4529;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.cart-wheel {
+  fill: none;
+  stroke: #5c4529;
+  stroke-width: 2.5;
 }
 
 .bottleneck-caption {
@@ -204,130 +281,265 @@ body {
   }
 }
 
-/* Scène : puits, stockage, camion, travailleur ------------------------- */
+/* Scène : puits, réserve, camion, fermier (V4) -------------------------- */
 
-.well-rim {
-  fill: #7a6a52;
+.well-shadow,
+.storage-shadow,
+.truck-shadow {
+  fill: rgba(30, 20, 10, 0.18);
 }
-.well-body {
-  fill: #5c4d3c;
+.well-rim-base {
+  fill: #8a7a5e;
+}
+.well-stones {
+  fill: #a89578;
+}
+.well-water {
+  fill: #2c6c86;
 }
 .well-mouth {
-  fill: #1f3a3f;
+  fill: #17414f;
+}
+.well-post,
+.well-beam {
+  fill: #7a5c3a;
+}
+.well-roof {
+  fill: #a4573f;
+}
+.well-roof-shade {
+  fill: #8a4432;
+  clip-path: polygon(0 0, 50% 100%, 0 100%);
+}
+.well-pulley {
+  fill: #5c5347;
+}
+.well-rope {
+  stroke: #7a5c3a;
+  stroke-width: 2;
+}
+.well-bucket {
+  fill: #6f7b83;
 }
 
-.storage-tank-outline {
-  fill: #22302c;
+.storage-barrel {
+  fill: #c99a63;
+  stroke: #7a5c3a;
+  stroke-width: 2;
 }
-.storage-tank-frame {
-  stroke: #46615a;
-  stroke-width: 3;
+.storage-outline {
+  stroke: #7a5c3a;
+  stroke-width: 2;
+}
+.storage-ring {
+  fill: #5c4529;
 }
 .storage-fill {
-  fill: #2d6f7a;
-  transition: height 0.4s ease, y 0.4s ease;
+  fill: #3a8fc9;
+  transition: d 0.4s ease;
+}
+.storage-emblem path {
+  fill: #3a8fc9;
+  opacity: 0.85;
 }
 
+.truck-shadow {
+  transition: opacity 0.3s ease;
+}
 .truck-tank {
-  fill: #3a5a63;
+  fill: #c7d2d9;
+  stroke: #8a97a0;
+  stroke-width: 1.5;
+}
+.truck-tank-band {
+  fill: #9aa8b2;
+}
+.truck-tank-cap {
+  fill: none;
+  stroke: #8a97a0;
+  stroke-width: 1.5;
 }
 .truck-cab {
-  fill: #2b4750;
+  fill: #3a6a8a;
+}
+.truck-window {
+  fill: #cfe7f2;
+}
+.truck-chassis {
+  fill: #4a4038;
 }
 .truck-wheel {
-  fill: #14201d;
+  fill: #22201d;
 }
-.truck {
-  transition: transform 1.1s ease-in-out;
+.truck-wheel-spin {
+  fill: none;
+  stroke: #565049;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+/* Pas de transition CSS ici : la position du camion est déjà interpolée
+   image par image en JS (requestAnimationFrame), y compris pendant la
+   phase de départ scriptée — une transition CSS par-dessus retarderait
+   la position réellement calculée au lieu de l'aider. */
+.truck.is-driving .truck-wheel-spin {
+  animation: wheel-spin 0.4s linear infinite;
 }
 .truck.is-shipping .truck-tank {
   animation: truck-flash 0.5s ease;
 }
 
-@keyframes truck-flash {
-  0%,
-  100% {
-    fill: #3a5a63;
+@keyframes wheel-spin {
+  from {
+    transform: rotate(0deg);
   }
-  50% {
-    fill: #5fb98a;
+  to {
+    transform: rotate(360deg);
   }
 }
 
-.worker-head,
-.worker-bucket {
-  fill: #e7d9b8;
+@keyframes truck-flash {
+  0%,
+  100% {
+    fill: #c7d2d9;
+  }
+  50% {
+    fill: #bfe6cf;
+  }
 }
-.worker-torso,
-.worker-limb,
-.worker-rope {
-  stroke: #e7d9b8;
-  stroke-width: 3;
+
+/* Fermier : un seul travailleur visible, un seul seau personnel. */
+.farmer-head {
+  fill: #e8b98a;
+}
+.farmer-hat-brim {
+  fill: #d9a441;
+}
+.farmer-hat-top {
+  fill: #c48f34;
+}
+.farmer-body {
+  fill: #3f6f92;
+}
+.farmer-strap {
+  fill: #2c5270;
+}
+.farmer-limb-leg {
+  stroke: #6a4f30;
+  stroke-width: 5;
   stroke-linecap: round;
   fill: none;
 }
-.worker-bucket {
-  fill: #7a6a52;
+.farmer-limb-arm {
+  stroke: #e8b98a;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  fill: none;
 }
-.worker-bucket.worker-bucket-full {
-  fill: #2d6f7a;
+.farmer-bucket-handle {
+  stroke: #4a4038;
+  stroke-width: 1.4;
+  stroke-linecap: round;
 }
-.worker {
+.farmer-bucket {
+  fill: #7d8890;
+  stroke: #4a4038;
+  stroke-width: 1;
+}
+.farmer-bucket.farmer-bucket-full {
+  fill: #3a8fc9;
+}
+.farmer {
   transition: transform 0.3s linear;
 }
 
 /* Bras et jambes : le placement statique (attribut transform="translate(...)")
-   vit sur le groupe PARENT (.worker-shoulder / .worker-hip) ; le groupe qui
-   reçoit l'animation CSS (.worker-arm-*/.worker-leg-*) n'a PAS d'attribut
+   vit sur le groupe PARENT (.farmer-shoulder / .farmer-hip) ; le groupe qui
+   reçoit l'animation CSS (.farmer-arm-*/.farmer-leg-*) n'a PAS d'attribut
    transform du tout, pour que CSS ne l'écrase pas. transform-origin: 0 0
    coïncide alors exactement avec l'épaule/la hanche, jamais le centre de
-   la boîte englobante du trait — c'est ce qui empêchait les jambes de
-   rester attachées au corps pendant la marche. */
-.worker-arm,
-.worker-leg {
+   la boîte englobante du trait — c'est ce qui évite tout membre qui
+   semble détaché du corps pendant la marche (bug identifié et corrigé
+   en V3, jamais réintroduit ici). Le seau du fermier est un enfant de
+   .farmer-arm-l : il hérite donc naturellement de son balancement,
+   jamais une coordonnée indépendante du corps. */
+.farmer-arm,
+.farmer-leg {
   transform-box: view-box;
   transform-origin: 0px 0px;
 }
 
-.worker.is-walking .worker-leg-l {
-  animation: leg-swing 0.5s ease-in-out infinite;
+.farmer.is-walking .farmer-leg-l {
+  animation: leg-swing 0.46s ease-in-out infinite;
 }
-.worker.is-walking .worker-leg-r {
-  animation: leg-swing 0.5s ease-in-out infinite reverse;
+.farmer.is-walking .farmer-leg-r {
+  animation: leg-swing 0.46s ease-in-out infinite reverse;
 }
-.worker.is-walking .worker-arm-l {
-  animation: arm-swing 0.5s ease-in-out infinite reverse;
+.farmer.is-walking .farmer-arm-l {
+  animation: arm-swing-carry 0.46s ease-in-out infinite reverse;
 }
-.worker.is-walking .worker-arm-r {
-  animation: arm-swing 0.5s ease-in-out infinite;
+.farmer.is-walking .farmer-arm-r {
+  animation: arm-swing 0.46s ease-in-out infinite;
+}
+.farmer.is-walking .farmer-bob {
+  animation: body-bob 0.46s ease-in-out infinite;
 }
 
 @keyframes leg-swing {
   0%,
   100% {
-    transform: rotate(-16deg);
+    transform: rotate(-18deg);
   }
   50% {
-    transform: rotate(16deg);
+    transform: rotate(18deg);
   }
 }
 
 @keyframes arm-swing {
   0%,
   100% {
-    transform: rotate(12deg);
+    transform: rotate(14deg);
   }
   50% {
-    transform: rotate(-12deg);
+    transform: rotate(-14deg);
   }
 }
 
-/* Animation d'attente : jamais un membre figé en plein pas — dès que la
-   marche s'arrête (classe is-walking retirée), les bras/jambes perdent
-   entièrement leur animation et reviennent à la pose neutre (aucune
-   transform = alignés le long du corps). Une légère respiration sur la
-   tête signale "en attente" sans jamais toucher aux membres. */
-.worker.is-waiting .worker-head {
+/* Le bras qui porte le seau balance moins large (le seau reste crédible,
+   jamais un tour complet qui ferait "voler" l'eau) — même cadence, pour
+   que le seau accompagne le corps sans jamais paraître désynchronisé. */
+@keyframes arm-swing-carry {
+  0%,
+  100% {
+    transform: rotate(8deg);
+  }
+  50% {
+    transform: rotate(-6deg);
+  }
+}
+
+@keyframes body-bob {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0);
+  }
+  25%,
+  75% {
+    transform: translateY(-1.6px);
+  }
+}
+
+/* Idle : dès que le fermier n'est pas en train de marcher (attente OU
+   travail au puits/à la réserve), une légère respiration sur la tête
+   évite toute impression de statue figée sans jamais toucher aux membres. */
+/* Tête ET chapeau doivent bouger ensemble (même animation dupliquée sur
+   les deux, pas un groupe partagé) : translateY n'a pas de pivot à faire
+   coïncider, donc appliquer la même translation à des frères suffit à
+   les garder visuellement solidaires, sans jamais laisser le chapeau
+   flotter séparément de la tête. */
+.farmer:not(.is-walking) .farmer-head,
+.farmer:not(.is-walking) .farmer-hat-brim,
+.farmer:not(.is-walking) .farmer-hat-top {
   animation: idle-bob 1.8s ease-in-out infinite;
 }
 
